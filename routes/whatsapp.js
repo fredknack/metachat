@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
-const sessions = require('../lib/sessionStore');
+const sessionStore = require('../lib/sessionStore');
 
 async function sendSwagOptions(to) {
   await Promise.all([
@@ -48,29 +48,30 @@ router.post('/', async (req, res) => {
   const incomingMsg = Body?.trim().toLowerCase();
   if (!from || !incomingMsg) return res.status(400).send('Bad Request');
 
-  const session = sessions.getOrCreate(from);
+  const session = sessionStore.getOrCreate(from);
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
-    session.stage = 'intro';
+    sessionStore.reset(from);
     return res.set('Content-Type', 'text/xml').send(`
       <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
-      Meta and Salesforce are helping businesses create seamless engagement.
-      Do you want to learn more?
-      1. Yes
-      2. No</Message></Response>
+Meta and Salesforce are helping businesses create seamless engagement.
+Do you want to learn more?
+1. Yes
+2. No</Message></Response>
     `);
   }
 
   let reply = '';
   console.log(`[DEBUG] User: ${from}, Incoming: ${incomingMsg}, Current stage: ${session.stage}`);
+
   switch (session.stage) {
     case 'intro':
       if (incomingMsg === '1') {
+        sessionStore.update(from, { stage: 'swag' });
         reply = 'Great! Here’s more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
-        session.stage = 'swag';
       } else if (incomingMsg === '2') {
-        session.stage = 'skipToSwag';
+        sessionStore.update(from, { stage: 'skipToSwag' });
         reply = `That’s okay, this conversation will remain open if you want to come back and learn more anytime.
 
 Everything you’ve just experienced is available for Salesforce customers to run natively out of Marketing Cloud. You can have 2-way conversations with customers and help them learn more about your product offerings and services.
@@ -84,23 +85,21 @@ Finally, while I have you here, can I interest you in some SWAG?
       break;
 
     case 'learn':
+      sessionStore.update(from, { stage: 'swag' });
       reply = 'Visit: https://invite.salesforce.com\nInterested in swag?\n1. Yes\n2. No';
-      session.stage = 'swag';
       break;
 
     case 'skipToSwag':
       if (incomingMsg === '1') {
-        session.stage = 'select';
-
+        sessionStore.update(from, { stage: 'select' });
         res.set('Content-Type', 'text/xml').send(`
           <Response><Message>Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
         `);
-
         await sendSwagOptions(from);
         return;
       } else if (incomingMsg === '2') {
+        sessionStore.update(from, { stage: 'completed' });
         reply = 'Thanks for your participation! We hope to connect with you again soon. 🎉';
-        session.stage = 'completed';  // <- mark as done, but don't clear
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -108,17 +107,15 @@ Finally, while I have you here, can I interest you in some SWAG?
 
     case 'swag':
       if (incomingMsg === '1') {
-        session.stage = 'select';
-
+        sessionStore.update(from, { stage: 'select' });
         res.set('Content-Type', 'text/xml').send(`
           <Response><Message>Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
         `);
-
         await sendSwagOptions(from);
         return;
       } else if (incomingMsg === '2') {
+        sessionStore.clear(from);
         reply = 'Thanks for participating!';
-        sessions.clear(from);
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -129,7 +126,7 @@ Finally, while I have you here, can I interest you in some SWAG?
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
-        session.selectedHat = hat;
+        sessionStore.update(from, { selectedHat: hat, stage: 'checkout' });
 
         await twilioClient.client.messages.create({
           from: 'whatsapp:+14155238886',
@@ -139,8 +136,6 @@ Finally, while I have you here, can I interest you in some SWAG?
         });
 
         twilioClient.sendFollowUpMessages(from);
-
-        session.stage = 'checkout';
         return;
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
@@ -149,7 +144,7 @@ Finally, while I have you here, can I interest you in some SWAG?
 
     case 'checkout':
       if (incomingMsg === '1' && session.allowHatChange) {
-        session.stage = 'select';
+        sessionStore.update(from, { stage: 'select' });
 
         await twilioClient.client.messages.create({
           from: 'whatsapp:+14155238886',
@@ -160,16 +155,16 @@ Finally, while I have you here, can I interest you in some SWAG?
         await sendSwagOptions(from);
         return;
       } else if (incomingMsg === '2') {
+        sessionStore.clear(from);
         reply = 'Thanks for your visit! We hope you love your swag. 🎁';
-        sessions.clear(from);
       } else {
         reply = 'Please reply with 1 to pick new swag, or 2 to end the chat.';
       }
       break;
 
     default:
+      sessionStore.update(from, { stage: 'intro' });
       reply = "I'm not sure what you meant. Send 'reset' to start over.";
-      session.stage = 'intro';  // reset stage but keep session
       break;
   }
 
