@@ -138,7 +138,7 @@ Finally, while I have you here, can I interest you in some SWAG?
           body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
         });
 
-        twilioClient.sendFollowUpMessages(from, sessions);
+        twilioClient.sendFollowUpMessages(from);
 
         session.stage = 'checkout';
         return;
