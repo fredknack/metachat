@@ -48,8 +48,10 @@ router.post('/', async (req, res) => {
   const incomingMsg = Body?.trim().toLowerCase();
   if (!from || !incomingMsg) return res.status(400).send('Bad Request');
 
+  const session = sessions.getOrCreate(from);
+
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
-    sessions.reset(from);
+    session.stage = 'intro';
     return res.set('Content-Type', 'text/xml').send(`
       <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
@@ -60,7 +62,6 @@ Do you want to learn more?
     `);
   }
 
-  const session = sessions.getOrCreate(from);
   let reply = '';
 
   switch (session.stage) {
@@ -69,6 +70,7 @@ Do you want to learn more?
         reply = 'Great! Here’s more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
         session.stage = 'swag';
       } else if (incomingMsg === '2') {
+        session.stage = 'skipToSwag';
         reply = `That’s okay, this conversation will remain open if you want to come back and learn more anytime.
 
 Everything you’ve just experienced is available for Salesforce customers to run natively out of Marketing Cloud. You can have 2-way conversations with customers and help them learn more about your product offerings and services.
@@ -76,7 +78,6 @@ Everything you’ve just experienced is available for Salesforce customers to ru
 Finally, while I have you here, can I interest you in some SWAG?
 1. Yes
 2. No`;
-        session.stage = 'skipToSwag';
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -115,9 +116,11 @@ Finally, while I have you here, can I interest you in some SWAG?
 
         await sendSwagOptions(from);
         return;
-      } else {
+      } else if (incomingMsg === '2') {
         reply = 'Thanks for participating!';
         sessions.clear(from);
+      } else {
+        reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
       break;
 
