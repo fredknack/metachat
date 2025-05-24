@@ -55,15 +55,15 @@ router.post('/', async (req, res) => {
     return res.set('Content-Type', 'text/xml').send(`
       <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
-Meta and Salesforce are helping businesses create seamless engagement.
-Do you want to learn more?
-1. Yes
-2. No</Message></Response>
+      Meta and Salesforce are helping businesses create seamless engagement.
+      Do you want to learn more?
+      1. Yes
+      2. No</Message></Response>
     `);
   }
 
   let reply = '';
-
+  console.log(`[DEBUG] User: ${from}, Incoming: ${incomingMsg}, Current stage: ${session.stage}`);
   switch (session.stage) {
     case 'intro':
       if (incomingMsg === '1') {
@@ -100,7 +100,7 @@ Finally, while I have you here, can I interest you in some SWAG?
         return;
       } else if (incomingMsg === '2') {
         reply = 'Thanks for your participation! We hope to connect with you again soon. 🎉';
-        sessions.clear(from);
+        session.stage = 'completed';  // <- mark as done, but don't clear
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -169,8 +169,7 @@ Finally, while I have you here, can I interest you in some SWAG?
 
     default:
       reply = "I'm not sure what you meant. Send 'reset' to start over.";
-      sessions.clear(from);
-      session.stage = 'intro';
+      session.stage = 'intro';  // reset stage but keep session
       break;
   }
 
