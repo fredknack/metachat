@@ -7,6 +7,13 @@ const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// Log every incoming request (global middleware)
+app.use((req, res, next) => {
+  console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl}`);
+  console.log(`[DEBUG] Headers: ${JSON.stringify(req.headers)}`);
+  next();
+});
+
 // Serve static files
 app.use('/hats', express.static(path.join(__dirname, 'hats')));
 
@@ -19,4 +26,3 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
-
