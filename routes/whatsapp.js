@@ -132,7 +132,12 @@ Finally, while I have you here, can I interest you in some SWAG?
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
-        sessionStore.update(user, { selectedHat: hat, stage: 'checkout' });
+        // Update session first
+        sessionStore.update(user, { 
+          selectedHat: hat, 
+          stage: 'checkout',
+          followupsSent: false  // Reset followupsSent to ensure we can send follow-up messages
+        });
 
         // Send image response first to WhatsApp (non-blocking)
         twilioClient.client.messages.create({
@@ -142,7 +147,8 @@ Finally, while I have you here, can I interest you in some SWAG?
           body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
         }).catch(err => console.error('❌ Error sending confirmed swag image:', err));
 
-        twilioClient.sendFollowUpMessages(user);
+        // Send follow-up messages after session is updated
+        await twilioClient.sendFollowUpMessages(user);
         reply = 'Your swag selection has been confirmed! 🎉';
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
