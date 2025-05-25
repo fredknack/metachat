@@ -4,36 +4,37 @@ const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
 async function sendSwagOptions(to) {
-  const swagItems = [
-    {
-      name: 'Wallet',
-      imageUrl: 'https://bot.jumpwire.xyz/hats/wallet.jpg',
-      body: '1️⃣ Wallet'
-    },
-    {
-      name: 'Sunglasses',
-      imageUrl: 'https://bot.jumpwire.xyz/hats/sunglasses.jpg',
-      body: '2️⃣ Sunglasses'
-    },
-    {
-      name: 'Water Bottle',
-      imageUrl: 'https://bot.jumpwire.xyz/hats/waterbottle.jpg',
-      body: '3️⃣ Water Bottle'
-    }
-  ];
+  if (!to) {
+    console.error(`❌ sendSwagOptions called with invalid 'to':`, to);
+    return;
+  }
 
-  for (const item of swagItems) {
-    try {
-      await twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',  // sandbox or production, set via env
+  console.log(`📤 Preparing to send swag options TO ${to}`);
+
+  try {
+    await Promise.all([
+      twilioClient.client.messages.create({
+        from: twilioClient.client._httpClient._defaultClient.from,
         to,
-        mediaUrl: [item.imageUrl],
-        body: item.body
-      });
-      console.log(`✅ Sent swag image: ${item.name} to ${to}`);
-    } catch (err) {
-      console.error(`❌ Failed to send ${item.name} image to ${to}:`, err);
-    }
+        mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
+        body: '1️⃣ Wallet'
+      }),
+      twilioClient.client.messages.create({
+        from: twilioClient.client._httpClient._defaultClient.from,
+        to,
+        mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
+        body: '2️⃣ Sunglasses'
+      }),
+      twilioClient.client.messages.create({
+        from: twilioClient.client._httpClient._defaultClient.from,
+        to,
+        mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
+        body: '3️⃣ Water Bottle'
+      })
+    ]);
+    console.log(`✅ Swag options sent TO ${to}`);
+  } catch (err) {
+    console.error(`❌ Error sending swag options to ${to}:`, err);
   }
 }
 
@@ -57,12 +58,25 @@ router.get('/', (req, res) => {
 router.post('/', async (req, res) => {
   const { From: from, Body } = req.body;
   const incomingMsg = Body?.trim().toLowerCase();
-  if (!from || !incomingMsg) return res.status(400).send('Bad Request');
 
-  const session = sessionStore.getOrCreate(from);
+  if (!from || !incomingMsg) {
+    console.warn(`⚠️ Invalid webhook payload: From=${from}, Body=${incomingMsg}`);
+    return res.status(400).send('Bad Request');
+  }
+
+  const user = from;
+  console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
+
+  const session = sessionStore.getOrCreate(user);
+  if (!session) {
+    console.error(`❌ Could not create/retrieve session for user: ${user}`);
+    return res.status(500).send('Server Error');
+  }
+
+  let reply = '';
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
-    sessionStore.reset(from);
+    sessionStore.reset(user);
     return res.set('Content-Type', 'text/xml').send(`
       <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
@@ -73,16 +87,13 @@ Do you want to learn more?
     `);
   }
 
-  let reply = '';
-  console.log(`[DEBUG] User: ${from}, Incoming: ${incomingMsg}, Current stage: ${session.stage}`);
-
   switch (session.stage) {
     case 'intro':
       if (incomingMsg === '1') {
-        sessionStore.update(from, { stage: 'swag' });
+        sessionStore.update(user, { stage: 'swag' });
         reply = 'Great! Here’s more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
       } else if (incomingMsg === '2') {
-        sessionStore.update(from, { stage: 'skipToSwag' });
+        sessionStore.update(user, { stage: 'skipToSwag' });
         reply = `That’s okay, this conversation will remain open if you want to come back and learn more anytime.
 
 Everything you’ve just experienced is available for Salesforce customers to run natively out of Marketing Cloud. You can have 2-way conversations with customers and help them learn more about your product offerings and services.
@@ -96,41 +107,22 @@ Finally, while I have you here, can I interest you in some SWAG?
       break;
 
     case 'learn':
-      sessionStore.update(from, { stage: 'swag' });
+      sessionStore.update(user, { stage: 'swag' });
       reply = 'Visit: https://invite.salesforce.com\nInterested in swag?\n1. Yes\n2. No';
       break;
 
     case 'skipToSwag':
-      if (incomingMsg === '1') {
-        sessionStore.update(from, { stage: 'select' });
-
-        res.set('Content-Type', 'text/xml').send(`
-          <Response><Message>Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
-        `);
-
-        sendSwagOptions(from); // run in background, no await
-        return;
-      } else if (incomingMsg === '2') {
-        sessionStore.update(from, { stage: 'completed' });
-        reply = 'Thanks for your participation! We hope to connect with you again soon. 🎉';
-      } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
-      }
-      break;
-
     case 'swag':
       if (incomingMsg === '1') {
-        sessionStore.update(from, { stage: 'select' });
-
+        sessionStore.update(user, { stage: 'select' });
         res.set('Content-Type', 'text/xml').send(`
           <Response><Message>Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
         `);
-
-        sendSwagOptions(from); // run in background, no await
+        await sendSwagOptions(user);
         return;
       } else if (incomingMsg === '2') {
-        sessionStore.clear(from);
-        reply = 'Thanks for participating!';
+        sessionStore.update(user, { stage: 'completed' });
+        reply = 'Thanks for your participation! We hope to connect with you again soon. 🎉';
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -141,18 +133,19 @@ Finally, while I have you here, can I interest you in some SWAG?
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
-        sessionStore.update(from, { selectedHat: hat, stage: 'checkout' });
+        sessionStore.update(user, { selectedHat: hat, stage: 'checkout' });
 
-        // Send image response first to WhatsApp (non-blocking)
-        twilioClient.client.messages.create({
-          from: 'whatsapp:+14155238886',
-          to: from,
+        console.log(`📤 Sending confirmation message FROM ${twilioClient.client._httpClient._defaultClient.from} TO ${user}`);
+
+        await twilioClient.client.messages.create({
+          from: twilioClient.client._httpClient._defaultClient.from,
+          to: user,
           mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
           body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
-        }).catch(err => console.error('❌ Error sending confirmed swag image:', err));
+        }).catch(err => console.error(`❌ Error sending confirmation to ${user}:`, err));
 
-        twilioClient.sendFollowUpMessages(from);
-        reply = 'Your swag selection has been confirmed! 🎉';
+        twilioClient.sendFollowUpMessages(user);
+        return;
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
@@ -160,17 +153,18 @@ Finally, while I have you here, can I interest you in some SWAG?
 
     case 'checkout':
       if (incomingMsg === '1' && session.allowHatChange) {
-        sessionStore.update(from, { stage: 'select' });
+        sessionStore.update(user, { stage: 'select' });
 
-        // Reply first
-        res.set('Content-Type', 'text/xml').send(`
-          <Response><Message>Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
-        `);
+        await twilioClient.client.messages.create({
+          from: twilioClient.client._httpClient._defaultClient.from,
+          to: user,
+          body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
+        }).catch(err => console.error(`❌ Error resending swag menu to ${user}:`, err));
 
-        sendSwagOptions(from); // run in background, no await
+        await sendSwagOptions(user);
         return;
       } else if (incomingMsg === '2') {
-        sessionStore.clear(from);
+        sessionStore.clear(user);
         reply = 'Thanks for your visit! We hope you love your swag. 🎁';
       } else {
         reply = 'Please reply with 1 to pick new swag, or 2 to end the chat.';
@@ -178,7 +172,7 @@ Finally, while I have you here, can I interest you in some SWAG?
       break;
 
     default:
-      sessionStore.update(from, { stage: 'intro' });
+      sessionStore.update(user, { stage: 'intro' });
       reply = "I'm not sure what you meant. Send 'reset' to start over.";
       break;
   }
