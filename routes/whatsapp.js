@@ -1,14 +1,12 @@
-// whatsapp.js (patched)
+// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
-const FROM_NUMBER = 'whatsapp:+15034214678';
-
 async function sendSwagOptions(to) {
-  if (!to) {
-    console.error(`❌ sendSwagOptions called with invalid 'to':`, to);
+  if (!to || to === twilioClient.fromNumber) {
+    console.warn(`⚠️ Skipping swag send: to and from are identical (${to})`);
     return;
   }
 
@@ -17,19 +15,19 @@ async function sendSwagOptions(to) {
   try {
     await Promise.all([
       twilioClient.client.messages.create({
-        from: FROM_NUMBER,
+        from: twilioClient.fromNumber,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
         body: '1️⃣ Wallet'
       }),
       twilioClient.client.messages.create({
-        from: FROM_NUMBER,
+        from: twilioClient.fromNumber,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
         body: '2️⃣ Sunglasses'
       }),
       twilioClient.client.messages.create({
-        from: FROM_NUMBER,
+        from: twilioClient.fromNumber,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
@@ -109,11 +107,6 @@ Finally, while I have you here, can I interest you in some SWAG?
       }
       break;
 
-    case 'learn':
-      sessionStore.update(user, { stage: 'swag' });
-      reply = 'Visit: https://invite.salesforce.com\nInterested in swag?\n1. Yes\n2. No';
-      break;
-
     case 'skipToSwag':
     case 'swag':
       if (incomingMsg === '1') {
@@ -138,16 +131,19 @@ Finally, while I have you here, can I interest you in some SWAG?
 
         sessionStore.update(user, { selectedHat: hat, stage: 'checkout' });
 
-        console.log(`📤 Sending confirmation message FROM ${FROM_NUMBER} TO ${user}`);
+        if (user !== twilioClient.fromNumber) {
+          await twilioClient.client.messages.create({
+            from: twilioClient.fromNumber,
+            to: user,
+            mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
+            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
+          }).catch(err => console.error(`❌ Error sending confirmation to ${user}:`, err));
 
-        await twilioClient.client.messages.create({
-          from: FROM_NUMBER,
-          to: user,
-          mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
-          body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
-        }).catch(err => console.error(`❌ Error sending confirmation to ${user}:`, err));
+          twilioClient.sendFollowUpMessages(user, sessionStore);
+        } else {
+          console.warn(`⚠️ Skipping confirmation: to and from are identical (${user})`);
+        }
 
-        twilioClient.sendFollowUpMessages(user);
         return;
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
@@ -158,13 +154,17 @@ Finally, while I have you here, can I interest you in some SWAG?
       if (incomingMsg === '1' && session.allowHatChange) {
         sessionStore.update(user, { stage: 'select' });
 
-        await twilioClient.client.messages.create({
-          from: FROM_NUMBER,
-          to: user,
-          body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
-        }).catch(err => console.error(`❌ Error resending swag menu to ${user}:`, err));
+        if (user !== twilioClient.fromNumber) {
+          await twilioClient.client.messages.create({
+            from: twilioClient.fromNumber,
+            to: user,
+            body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
+          }).catch(err => console.error(`❌ Error resending swag menu to ${user}:`, err));
 
-        await sendSwagOptions(user);
+          await sendSwagOptions(user);
+        } else {
+          console.warn(`⚠️ Skipping resend: to and from are identical (${user})`);
+        }
         return;
       } else if (incomingMsg === '2') {
         sessionStore.clear(user);
