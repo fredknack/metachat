@@ -4,30 +4,36 @@ const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
 async function sendSwagOptions(to) {
-  try {
-    await Promise.all([
-      twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
+  const swagItems = [
+    {
+      name: 'Wallet',
+      imageUrl: 'https://bot.jumpwire.xyz/hats/wallet.jpg',
+      body: '1️⃣ Wallet'
+    },
+    {
+      name: 'Sunglasses',
+      imageUrl: 'https://bot.jumpwire.xyz/hats/sunglasses.jpg',
+      body: '2️⃣ Sunglasses'
+    },
+    {
+      name: 'Water Bottle',
+      imageUrl: 'https://bot.jumpwire.xyz/hats/waterbottle.jpg',
+      body: '3️⃣ Water Bottle'
+    }
+  ];
+
+  for (const item of swagItems) {
+    try {
+      await twilioClient.client.messages.create({
+        from: 'whatsapp:+14155238886',  // sandbox or production, set via env
         to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
-        body: '1️⃣ Wallet'
-      }),
-      twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
-        to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
-        body: '2️⃣ Sunglasses'
-      }),
-      twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
-        to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
-        body: '3️⃣ Water Bottle'
-      })
-    ]);
-    console.log(`✅ Swag options sent to ${to}`);
-  } catch (err) {
-    console.error(`❌ Error sending swag options to ${to}:`, err);
+        mediaUrl: [item.imageUrl],
+        body: item.body
+      });
+      console.log(`✅ Sent swag image: ${item.name} to ${to}`);
+    } catch (err) {
+      console.error(`❌ Failed to send ${item.name} image to ${to}:`, err);
+    }
   }
 }
 
