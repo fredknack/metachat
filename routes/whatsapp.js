@@ -1,50 +1,58 @@
-// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
+const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
+
+// Helper function for TwiML responses
+function twimlResponse(message) {
+  return `<Response><Message>${message}</Message></Response>`;
+}
+
 async function sendSwagOptions(to) {
   try {
     console.log(`[DEBUG] Starting to send swag options to ${to}`);
     const startTime = Date.now();
-    
-    // Ensure we're not sending to the same number
-    if (to === 'whatsapp:+14155238886') {
+
+    if (to === FROM_NUMBER) {
       console.error('❌ Cannot send message to the same number');
       return;
     }
 
-    const from = 'whatsapp:+14155238886';
     await Promise.all([
       twilioClient.client.messages.create({
-        from,
+        from: FROM_NUMBER,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
         body: '1️⃣ Wallet'
       }).then(() => console.log(`[DEBUG] Wallet message sent in ${Date.now() - startTime}ms`)),
+
       twilioClient.client.messages.create({
-        from,
+        from: FROM_NUMBER,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
         body: '2️⃣ Sunglasses'
       }).then(() => console.log(`[DEBUG] Sunglasses message sent in ${Date.now() - startTime}ms`)),
+
       twilioClient.client.messages.create({
-        from,
+        from: FROM_NUMBER,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
       }).then(() => console.log(`[DEBUG] Water bottle message sent in ${Date.now() - startTime}ms`))
     ]);
+
     console.log(`✅ All swag options sent to ${to} in ${Date.now() - startTime}ms`);
   } catch (err) {
     console.error(`❌ Error sending swag options to ${to}:`, err);
   }
 }
 
+// Webhook verification
 router.get('/', (req, res) => {
   const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
-  const VERIFY_TOKEN = 'JumpwireWhatsAppSecret9834';
 
   if (mode && token) {
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
@@ -59,6 +67,7 @@ router.get('/', (req, res) => {
   }
 });
 
+// Main webhook handler
 router.post('/', async (req, res) => {
   const { From: from, Body } = req.body;
   const incomingMsg = Body?.trim().toLowerCase();
@@ -81,21 +90,20 @@ router.post('/', async (req, res) => {
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
     sessionStore.resetSession(user);
-    return res.set('Content-Type', 'text/xml').send(`
-      <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
+    return res.set('Content-Type', 'text/xml').send(
+      twimlResponse(`👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
 Meta and Salesforce are helping businesses create seamless engagement.
 Do you want to learn more?
 1. Yes
-2. No</Message></Response>
-    `);
+2. No`)
+    );
   }
 
   switch (session.stage) {
     case 'intro':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'swag' });
-        reply = 'Great! Here's more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
       } else if (incomingMsg === '2') {
         sessionStore.update(user, { stage: 'skipToSwag' });
         reply = `That's okay, this conversation will remain open if you want to come back and learn more anytime.
@@ -114,9 +122,9 @@ Finally, while I have you here, can I interest you in some SWAG?
     case 'swag':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'select' });
-        res.set('Content-Type', 'text/xml').send(`
-          <Response><Message>Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
-        `);
+        res.set('Content-Type', 'text/xml').send(
+          twimlResponse(`Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`)
+        );
         await sendSwagOptions(user);
         return;
       } else if (incomingMsg === '2') {
@@ -132,23 +140,25 @@ Finally, while I have you here, can I interest you in some SWAG?
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
-        // Update session first
-        sessionStore.update(user, { 
-          selectedHat: hat, 
+        sessionStore.update(user, {
+          selectedHat: hat,
           stage: 'checkout',
-          followupsSent: false  // Reset followupsSent to ensure we can send follow-up messages
+          followupsSent: false
         });
 
-        // Send image response first to WhatsApp (non-blocking)
         twilioClient.client.messages.create({
-          from: 'whatsapp:+14155238886',
+          from: FROM_NUMBER,
           to: user,
           mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
           body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
         }).catch(err => console.error('❌ Error sending confirmed swag image:', err));
 
-        // Send follow-up messages after session is updated
-        await twilioClient.sendFollowUpMessages(user);
+        try {
+          await twilioClient.sendFollowUpMessages(user);
+        } catch (err) {
+          console.error('❌ Error sending follow-ups:', err);
+        }
+
         reply = 'Your swag selection has been confirmed! 🎉';
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
@@ -159,11 +169,11 @@ Finally, while I have you here, can I interest you in some SWAG?
       if (incomingMsg === '1' && session.allowHatChange) {
         sessionStore.update(user, { stage: 'select' });
 
-        res.set('Content-Type', 'text/xml').send(`
-          <Response><Message>Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
-        `);
+        res.set('Content-Type', 'text/xml').send(
+          twimlResponse(`Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`)
+        );
 
-        sendSwagOptions(user); // run in background, no await
+        sendSwagOptions(user);
         return;
       } else if (incomingMsg === '2') {
         sessionStore.resetSession(user);
@@ -181,7 +191,7 @@ Finally, while I have you here, can I interest you in some SWAG?
 
   if (reply) {
     res.set('Content-Type', 'text/xml');
-    res.send(`<Response><Message>${reply}</Message></Response>`);
+    res.send(twimlResponse(reply));
   }
 });
 
