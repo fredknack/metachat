@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 
+
+router.get('/health', (req, res) => {
+  res.send('✅ Health check passed!');
+});
+
 router.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
