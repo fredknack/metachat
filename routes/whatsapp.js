@@ -15,21 +15,22 @@ async function sendSwagOptions(to) {
       return;
     }
 
+    const from = 'whatsapp:+14155238886';
     await Promise.all([
       twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
+        from,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
         body: '1️⃣ Wallet'
       }).then(() => console.log(`[DEBUG] Wallet message sent in ${Date.now() - startTime}ms`)),
       twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
+        from,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
         body: '2️⃣ Sunglasses'
       }).then(() => console.log(`[DEBUG] Sunglasses message sent in ${Date.now() - startTime}ms`)),
       twilioClient.client.messages.create({
-        from: 'whatsapp:+14155238886',
+        from,
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
