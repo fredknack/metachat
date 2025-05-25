@@ -1,40 +1,42 @@
+// PATCHED whatsapp.js with improved validation, stable Twilio from, and error handling
+
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
+const TWILIO_FROM = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886';
+
+function isValidUser(user) {
+  return typeof user === 'string' && user.trim().length > 0;
+}
+
 async function sendSwagOptions(to) {
-  if (!to) {
-    console.error(`❌ sendSwagOptions called with invalid 'to':`, to);
+  if (!isValidUser(to)) {
+    console.warn(`⚠️ Invalid 'to' passed to sendSwagOptions:`, to);
     return;
   }
 
   console.log(`📤 Preparing to send swag options TO ${to}`);
 
-  try {
-    await Promise.all([
-      twilioClient.client.messages.create({
-        from: twilioClient.client._httpClient._defaultClient.from,
+  const messages = [
+    { media: 'wallet.jpg', body: '1️⃣ Wallet' },
+    { media: 'sunglasses.jpg', body: '2️⃣ Sunglasses' },
+    { media: 'waterbottle.jpg', body: '3️⃣ Water Bottle' }
+  ];
+
+  for (const msg of messages) {
+    try {
+      await twilioClient.client.messages.create({
+        from: TWILIO_FROM,
         to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
-        body: '1️⃣ Wallet'
-      }),
-      twilioClient.client.messages.create({
-        from: twilioClient.client._httpClient._defaultClient.from,
-        to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
-        body: '2️⃣ Sunglasses'
-      }),
-      twilioClient.client.messages.create({
-        from: twilioClient.client._httpClient._defaultClient.from,
-        to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
-        body: '3️⃣ Water Bottle'
-      })
-    ]);
-    console.log(`✅ Swag options sent TO ${to}`);
-  } catch (err) {
-    console.error(`❌ Error sending swag options to ${to}:`, err);
+        mediaUrl: [`https://bot.jumpwire.xyz/hats/${msg.media}`],
+        body: msg.body
+      });
+      console.log(`✅ Sent ${msg.body} to ${to}`);
+    } catch (err) {
+      console.error(`❌ Failed to send ${msg.body} to ${to}:`, err);
+    }
   }
 }
 
@@ -59,7 +61,7 @@ router.post('/', async (req, res) => {
   const { From: from, Body } = req.body;
   const incomingMsg = Body?.trim().toLowerCase();
 
-  if (!from || !incomingMsg) {
+  if (!isValidUser(from) || !incomingMsg) {
     console.warn(`⚠️ Invalid webhook payload: From=${from}, Body=${incomingMsg}`);
     return res.status(400).send('Bad Request');
   }
@@ -135,14 +137,17 @@ Finally, while I have you here, can I interest you in some SWAG?
 
         sessionStore.update(user, { selectedHat: hat, stage: 'checkout' });
 
-        console.log(`📤 Sending confirmation message FROM ${twilioClient.client._httpClient._defaultClient.from} TO ${user}`);
-
-        await twilioClient.client.messages.create({
-          from: twilioClient.client._httpClient._defaultClient.from,
-          to: user,
-          mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
-          body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
-        }).catch(err => console.error(`❌ Error sending confirmation to ${user}:`, err));
+        try {
+          await twilioClient.client.messages.create({
+            from: TWILIO_FROM,
+            to: user,
+            mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
+            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
+          });
+          console.log(`✅ Confirmation message sent to ${user}`);
+        } catch (err) {
+          console.error(`❌ Error sending confirmation to ${user}:`, err);
+        }
 
         twilioClient.sendFollowUpMessages(user);
         return;
@@ -155,11 +160,15 @@ Finally, while I have you here, can I interest you in some SWAG?
       if (incomingMsg === '1' && session.allowHatChange) {
         sessionStore.update(user, { stage: 'select' });
 
-        await twilioClient.client.messages.create({
-          from: twilioClient.client._httpClient._defaultClient.from,
-          to: user,
-          body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
-        }).catch(err => console.error(`❌ Error resending swag menu to ${user}:`, err));
+        try {
+          await twilioClient.client.messages.create({
+            from: TWILIO_FROM,
+            to: user,
+            body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
+          });
+        } catch (err) {
+          console.error(`❌ Error resending swag menu to ${user}:`, err);
+        }
 
         await sendSwagOptions(user);
         return;
@@ -173,6 +182,7 @@ Finally, while I have you here, can I interest you in some SWAG?
 
     default:
       sessionStore.update(user, { stage: 'intro' });
+      console.warn(`⚠️ Unexpected stage for user ${user}. Resetting to intro.`);
       reply = "I'm not sure what you meant. Send 'reset' to start over.";
       break;
   }
