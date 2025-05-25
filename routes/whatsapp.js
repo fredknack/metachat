@@ -5,35 +5,37 @@ const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 
 async function sendSwagOptions(to) {
-  if (!to || to === twilioClient.fromNumber) {
-    console.warn(`⚠️ Skipping swag send: to and from are identical (${to})`);
-    return;
-  }
-
-  console.log(`📤 Preparing to send swag options TO ${to}`);
-
   try {
+    console.log(`[DEBUG] Starting to send swag options to ${to}`);
+    const startTime = Date.now();
+    
+    // Ensure we're not sending to the same number
+    if (to === 'whatsapp:+14155238886') {
+      console.error('❌ Cannot send message to the same number');
+      return;
+    }
+
     await Promise.all([
       twilioClient.client.messages.create({
-        from: twilioClient.fromNumber,
+        from: 'whatsapp:+14155238886',
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
         body: '1️⃣ Wallet'
-      }),
+      }).then(() => console.log(`[DEBUG] Wallet message sent in ${Date.now() - startTime}ms`)),
       twilioClient.client.messages.create({
-        from: twilioClient.fromNumber,
+        from: 'whatsapp:+14155238886',
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
         body: '2️⃣ Sunglasses'
-      }),
+      }).then(() => console.log(`[DEBUG] Sunglasses message sent in ${Date.now() - startTime}ms`)),
       twilioClient.client.messages.create({
-        from: twilioClient.fromNumber,
+        from: 'whatsapp:+14155238886',
         to,
         mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
-      })
+      }).then(() => console.log(`[DEBUG] Water bottle message sent in ${Date.now() - startTime}ms`))
     ]);
-    console.log(`✅ Swag options sent TO ${to}`);
+    console.log(`✅ All swag options sent to ${to} in ${Date.now() - startTime}ms`);
   } catch (err) {
     console.error(`❌ Error sending swag options to ${to}:`, err);
   }
@@ -68,7 +70,7 @@ router.post('/', async (req, res) => {
   const user = from;
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
 
-  const session = sessionStore.getOrCreate(user);
+  const session = sessionStore.getOrCreateSession(user);
   if (!session) {
     console.error(`❌ Could not create/retrieve session for user: ${user}`);
     return res.status(500).send('Server Error');
@@ -77,7 +79,7 @@ router.post('/', async (req, res) => {
   let reply = '';
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
-    sessionStore.reset(user);
+    sessionStore.resetSession(user);
     return res.set('Content-Type', 'text/xml').send(`
       <Response><Message>👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
@@ -92,12 +94,12 @@ Do you want to learn more?
     case 'intro':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'swag' });
-        reply = 'Great! Here’s more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
+        reply = 'Great! Here's more info: https://invite.salesforce.com\nWould you like some swag?\n1. Yes\n2. No';
       } else if (incomingMsg === '2') {
         sessionStore.update(user, { stage: 'skipToSwag' });
-        reply = `That’s okay, this conversation will remain open if you want to come back and learn more anytime.
+        reply = `That's okay, this conversation will remain open if you want to come back and learn more anytime.
 
-Everything you’ve just experienced is available for Salesforce customers to run natively out of Marketing Cloud. You can have 2-way conversations with customers and help them learn more about your product offerings and services.
+Everything you've just experienced is available for Salesforce customers to run natively out of Marketing Cloud. You can have 2-way conversations with customers and help them learn more about your product offerings and services.
 
 Finally, while I have you here, can I interest you in some SWAG?
 1. Yes
@@ -131,20 +133,16 @@ Finally, while I have you here, can I interest you in some SWAG?
 
         sessionStore.update(user, { selectedHat: hat, stage: 'checkout' });
 
-        if (user !== twilioClient.fromNumber) {
-          await twilioClient.client.messages.create({
-            from: twilioClient.fromNumber,
-            to: user,
-            mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
-          }).catch(err => console.error(`❌ Error sending confirmation to ${user}:`, err));
+        // Send image response first to WhatsApp (non-blocking)
+        twilioClient.client.messages.create({
+          from: 'whatsapp:+14155238886',
+          to: user,
+          mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
+          body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag. We hope you love it! 🎉`
+        }).catch(err => console.error('❌ Error sending confirmed swag image:', err));
 
-          twilioClient.sendFollowUpMessages(user, sessionStore);
-        } else {
-          console.warn(`⚠️ Skipping confirmation: to and from are identical (${user})`);
-        }
-
-        return;
+        twilioClient.sendFollowUpMessages(user);
+        reply = 'Your swag selection has been confirmed! 🎉';
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
@@ -154,20 +152,14 @@ Finally, while I have you here, can I interest you in some SWAG?
       if (incomingMsg === '1' && session.allowHatChange) {
         sessionStore.update(user, { stage: 'select' });
 
-        if (user !== twilioClient.fromNumber) {
-          await twilioClient.client.messages.create({
-            from: twilioClient.fromNumber,
-            to: user,
-            body: `Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle`
-          }).catch(err => console.error(`❌ Error resending swag menu to ${user}:`, err));
+        res.set('Content-Type', 'text/xml').send(`
+          <Response><Message>Sure! Let's look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle</Message></Response>
+        `);
 
-          await sendSwagOptions(user);
-        } else {
-          console.warn(`⚠️ Skipping resend: to and from are identical (${user})`);
-        }
+        sendSwagOptions(user); // run in background, no await
         return;
       } else if (incomingMsg === '2') {
-        sessionStore.clear(user);
+        sessionStore.resetSession(user);
         reply = 'Thanks for your visit! We hope you love your swag. 🎁';
       } else {
         reply = 'Please reply with 1 to pick new swag, or 2 to end the chat.';
