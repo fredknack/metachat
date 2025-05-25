@@ -22,7 +22,7 @@ app.use('/', require('./routes/root'));
 app.use('/qrcode', require('./routes/qrcode'));
 app.use('/whatsapp', require('./routes/whatsapp'));
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
