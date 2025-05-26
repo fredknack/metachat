@@ -23,19 +23,19 @@ async function sendSwagOptions(to) {
       twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/wallet.jpg'],
+        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/wallet.jpg'],
         body: '1️⃣ Wallet'
       }),
       twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/sunglasses.jpg'],
+        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/sunglasses.jpg'],
         body: '2️⃣ Sunglasses'
       }),
       twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to,
-        mediaUrl: ['https://bot.jumpwire.xyz/hats/waterbottle.jpg'],
+        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
       })
     ]);
