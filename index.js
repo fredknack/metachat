@@ -1,27 +1,36 @@
-// index.js
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 
 const app = express();
 
+// Parse both urlencoded (form) and JSON payloads
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Log every request
+// Global request logger
 app.use((req, res, next) => {
   console.log(`🌐 Incoming request: ${req.method} ${req.originalUrl}`);
-  console.log('Headers:', req.headers);
+  console.log(`Headers:`, req.headers);
   next();
 });
 
-// Test POST route for Twilio webhook
-app.use('/whatsapp', require('./routes/whatsapp'));
-
-// Root route
-app.get('/', (req, res) => {
-  res.send('✅ Server is up. POST to /whatsapp for Twilio test.');
+// Minimal Twilio test POST endpoint
+app.post('/twilio-test', (req, res) => {
+  console.log('🔥 [TWILIO TEST] Incoming POST at /twilio-test');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  res.status(200).send('✅ Received by /twilio-test');
 });
+
+// Serve static files
+app.use('/hats', express.static(path.join(__dirname, 'hats')));
+
+// Routes
+app.use('/', require('./routes/root'));
+app.use('/qrcode', require('./routes/qrcode'));
+app.use('/whatsapp', require('./routes/whatsapp'));
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
