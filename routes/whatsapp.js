@@ -3,26 +3,33 @@ const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
-const { firestore } = require('../lib/firebase');
-const admin = require('../lib/firebase').admin;
+const firestore = require('../lib/firebase');  // only export firestore here
+
+const admin = require('firebase-admin');  // direct import for FieldValue
 
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
 async function logToFirestore(user, message, stage) {
-  await firestore.collection('sessions').doc(user).set({
-    lastMessage: message,
-    stage,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+  try {
+    const sessionRef = firestore.collection('sessions').doc(user);
 
-  await firestore.collection('sessions').doc(user).collection('log').add({
-    message,
-    stage,
-    timestamp: new Date()
-  });
+    await sessionRef.set({
+      lastMessage: message,
+      stage,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 
-  console.log(`✅ Logged interaction for ${user} at stage: ${stage}`);
+    await sessionRef.collection('log').add({
+      message,
+      stage,
+      timestamp: new Date()
+    });
+
+    console.log(`✅ Logged interaction for ${user} at stage: ${stage}`);
+  } catch (err) {
+    console.error(`❌ Failed to log to Firebase for ${user}:`, err);
+  }
 }
 
 function twimlResponse(message, mediaUrl = null) {
@@ -77,12 +84,8 @@ router.post('/', async (req, res) => {
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
 
-  // 🛠 Log to Firebase
-  try {
-    await logToFirestore(user, incomingMsg, session.stage);
-  } catch (err) {
-    console.error('❌ Failed to log to Firebase:', err);
-  }
+  // Log to Firebase
+  await logToFirestore(user, incomingMsg, session.stage);
 
   let reply = '';
 
@@ -158,9 +161,6 @@ Want some swag?
           });
 
           await twilioClient.sendFollowUpMessages(user);
-
-          // ✅ Also log to Firebase
-          await logToFirestore(user, `Selected swag: ${hatFormatted}`, 'checkout');
 
           return res.set('Content-Type', 'text/xml').send(
             twimlResponse('Your swag selection has been confirmed! 🎉')
