@@ -10,20 +10,16 @@ const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
 async function logToFirestore(user, message, stage) {
-  const sessionRef = firestore.collection('sessions').doc(user);
-  const timestamp = new Date();
-
-  await sessionRef.set({
+  await firestore.collection('sessions').doc(user).set({
     lastMessage: message,
     stage,
-    timestamp,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
-  await sessionRef.collection('log').add({
+  await firestore.collection('sessions').doc(user).collection('log').add({
     message,
     stage,
-    timestamp
+    timestamp: new Date()
   });
 
   console.log(`✅ Logged interaction for ${user} at stage: ${stage}`);
