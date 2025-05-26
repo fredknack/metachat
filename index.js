@@ -1,4 +1,4 @@
-require('dotenv').config();
+// index.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -7,11 +7,13 @@ const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Log every incoming request (global middleware)
-app.use((req, res, next) => {
-  console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl}`);
-  console.log(`[DEBUG] Headers: ${JSON.stringify(req.headers)}`);
-  next();
+// Minimal Twilio test POST endpoint
+app.post('/twilio-test', (req, res) => {
+  console.log('🔥 [TWILIO TEST] Incoming POST at /twilio-test');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+
+  res.status(200).send('✅ Received by /twilio-test');
 });
 
 // Serve static files
