@@ -18,30 +18,16 @@ async function sendSwagOptions(to) {
   }
 
   try {
-    console.log(`[DEBUG] Sending swag options to ${to}`);
-    await Promise.all([
-      twilioClient.client.messages.create({
-        from: FROM_NUMBER,
-        to,
-        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/wallet.jpg'],
-        body: '1️⃣ Wallet'
-      }),
-      twilioClient.client.messages.create({
-        from: FROM_NUMBER,
-        to,
-        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/sunglasses.jpg'],
-        body: '2️⃣ Sunglasses'
-      }),
-      twilioClient.client.messages.create({
-        from: FROM_NUMBER,
-        to,
-        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/waterbottle.jpg'],
-        body: '3️⃣ Water Bottle'
-      })
-    ]);
-    console.log(`✅ Swag options sent to ${to}`);
+    console.log(`[DEBUG] Sending single swag menu image to ${to}`);
+    await twilioClient.client.messages.create({
+      from: FROM_NUMBER,
+      to,
+      mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'],
+      body: 'Here are your swag options! Please reply:\n1️⃣ Wallet\n2️⃣ Sunglasses\n3️⃣ Water Bottle'
+    });
+    console.log(`✅ Single swag menu image sent to ${to}`);
   } catch (err) {
-    console.error(`❌ Error sending swag options to ${to}:`, err);
+    console.error(`❌ Error sending swag menu image to ${to}:`, err);
   }
 }
 
