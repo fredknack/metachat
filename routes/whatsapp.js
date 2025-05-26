@@ -1,3 +1,4 @@
+// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
@@ -6,29 +7,8 @@ const sessionStore = require('../lib/sessionStore');
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
-// Helper for TwiML responses
 function twimlResponse(message) {
   return `<Response><Message>${message}</Message></Response>`;
-}
-
-async function sendSwagOptions(to) {
-  if (to === FROM_NUMBER) {
-    console.error('❌ Cannot send swag options to FROM_NUMBER');
-    return;
-  }
-
-  try {
-    console.log(`[DEBUG] Sending single swag menu image to ${to}`);
-    await twilioClient.client.messages.create({
-      from: FROM_NUMBER,
-      to,
-      mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'],
-      body: 'Here are your swag options! Please reply:\n1️⃣ Wallet\n2️⃣ Sunglasses\n3️⃣ Water Bottle'
-    });
-    console.log(`✅ Single swag menu image sent to ${to}`);
-  } catch (err) {
-    console.error(`❌ Error sending swag menu image to ${to}:`, err);
-  }
 }
 
 // Webhook verification
@@ -38,13 +18,13 @@ router.get('/', (req, res) => {
   if (mode && token) {
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       console.log('✅ Webhook verified!');
-      res.status(200).send(challenge);
+      return res.status(200).send(challenge);
     } else {
       console.warn('❌ Invalid verify token');
-      res.sendStatus(403);
+      return res.sendStatus(403);
     }
   } else {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   }
 });
 
@@ -74,8 +54,6 @@ router.post('/', async (req, res) => {
     sessionStore.resetSession(user);
     sessionStore.update(user, { stage: 'intro', followupsSent: false });
 
-    console.log(`[DEBUG] Session after reset for ${user}:`, sessionStore.getOrCreateSession(user));
-
     return res.set('Content-Type', 'text/xml').send(
       twimlResponse(`👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
@@ -86,102 +64,101 @@ Do you want to learn more?
     );
   }
 
-  switch (session.stage) {
-    case 'intro':
-      if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'swag' });
-        reply = 'Great! Let’s move on to swag options.\n1. Yes\n2. No';
-      } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'skipToSwag' });
-        reply = `That's okay, you can come back anytime.
+  try {
+    switch (session.stage) {
+      case 'intro':
+        if (incomingMsg === '1') {
+          sessionStore.update(user, { stage: 'swag' });
+          reply = 'Great! Let’s move on to swag options.\n1. Yes\n2. No';
+        } else if (incomingMsg === '2') {
+          sessionStore.update(user, { stage: 'skipToSwag' });
+          reply = `That's okay, you can come back anytime.
 
 Everything you've just experienced is available natively in Salesforce Marketing Cloud.
 
 Want some swag?
 1. Yes
 2. No`;
-      } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
-      }
-      break;
+        } else {
+          reply = 'Please reply with 1 (Yes) or 2 (No).';
+        }
+        break;
 
-    case 'skipToSwag':
-    case 'swag':
-      if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'select' });
-        res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle')
-        );
-        await sendSwagOptions(user);
-        return;
-      } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'completed' });
-        reply = 'Thanks for your time! We hope to connect again soon. 🎉';
-      } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
-      }
-      break;
+      case 'skipToSwag':
+      case 'swag':
+        if (incomingMsg === '1') {
+          sessionStore.update(user, { stage: 'select' });
+          res.set('Content-Type', 'text/xml').send(
+            twimlResponse('Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle')
+          );
+          await twilioClient.client.messages.create({
+            from: FROM_NUMBER,
+            to: user,
+            mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/swagsheet.jpg'],
+            body: 'Here are the swag options!'
+          });
+          return;
+        } else if (incomingMsg === '2') {
+          sessionStore.update(user, { stage: 'completed' });
+          reply = 'Thanks for your time! We hope to connect again soon. 🎉';
+        } else {
+          reply = 'Please reply with 1 (Yes) or 2 (No).';
+        }
+        break;
 
-    case 'select':
-      if (['1', '2', '3'].includes(incomingMsg)) {
-        const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
-        const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
+      case 'select':
+        if (['1', '2', '3'].includes(incomingMsg)) {
+          const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
+          const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
-        sessionStore.update(user, {
-          selectedHat: hat,
-          stage: 'checkout',
-          followupsSent: false
-        });
+          sessionStore.update(user, {
+            selectedHat: hat,
+            stage: 'checkout',
+            followupsSent: false
+          });
 
-        if (user !== FROM_NUMBER) {
-          twilioClient.client.messages.create({
+          await twilioClient.client.messages.create({
             from: FROM_NUMBER,
             to: user,
             mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉`
-          }).catch(err => console.error('❌ Error sending swag confirmation image:', err));
+            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`
+          });
 
-          try {
-            await twilioClient.sendFollowUpMessages(user);
-          } catch (err) {
-            console.error('❌ Error sending follow-ups:', err);
-          }
+          await twilioClient.sendFollowUpMessages(user);
+
+          reply = null; // Already handled above
+        } else {
+          reply = 'Please reply with 1, 2, or 3 to select your swag.';
         }
+        break;
 
-        reply = 'Your swag selection has been confirmed! 🎉';
-      } else {
-        reply = 'Please reply with 1, 2, or 3 to select your swag.';
-      }
-      break;
+      case 'checkout':
+        if (incomingMsg === '1') {
+          sessionStore.update(user, { stage: 'finalthanks' });
+          reply = `We are glad that you are happy with your selection. Thanks again for your participation! If you want to learn more, visit: https://www.salesforce.com`;
+        } else {
+          reply = 'Please enter 1 when you’re done at the booth.';
+        }
+        break;
 
-    case 'checkout':
-      if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'thankyou' });
-        reply = 'We are glad that you are happy with your selection. Thanks again for your participation.';
-      } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'select' });
-        reply = 'No problem! Let’s look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
-        await sendSwagOptions(user);
-        return;
-      } else {
-        reply = 'Please reply with 1 if you are happy, or 2 if you would like to exchange.';
-      }
-      break;
+      case 'finalthanks':
+        reply = 'Thank you again! You can always type "reset" to start over or "start" to explore again.';
+        break;
 
-    case 'thankyou':
-      reply = '🎉 Thanks again! If you want to restart, type "reset". Also, visit our demo on the main screen!';
-      break;
+      default:
+        console.warn(`[WARN] Unrecognized stage or input: stage=${session.stage}, input=${incomingMsg}`);
+        sessionStore.update(user, { stage: 'intro' });
+        reply = "I'm not sure what you meant. Send 'reset' to start over.";
+        break;
+    }
 
-    default:
-      console.warn(`[WARN] Unrecognized stage or input: stage=${session.stage}, input=${incomingMsg}`);
-      sessionStore.update(user, { stage: 'intro' });
-      reply = "I'm not sure what you meant. Send 'reset' to start over.";
-      break;
-  }
-
-  if (reply) {
-    res.set('Content-Type', 'text/xml');
-    res.send(twimlResponse(reply));
+    if (reply) {
+      res.set('Content-Type', 'text/xml');
+      res.send(twimlResponse(reply));
+    }
+  } catch (err) {
+    console.error('❌ Error in WhatsApp handler:', err);
+    res.status(500).send('Server error');
   }
 });
 
