@@ -152,7 +152,7 @@ Want some swag?
             from: FROM_NUMBER,
             to: user,
             mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉`
+            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nOnce you’ve shown it, reply with 1 to receive a thank-you and learn-more link.`
           }).catch(err => console.error('❌ Error sending swag confirmation image:', err));
 
           try {
@@ -162,7 +162,7 @@ Want some swag?
           }
         }
 
-        reply = 'Your swag selection has been confirmed! 🎉 Once you’ve shown this message at the booth, reply with 1.';
+        reply = 'Your swag selection has been confirmed! 🎉 Once you’ve shown the message at the booth, reply with 1 to continue.';
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
