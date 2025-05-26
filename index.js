@@ -27,6 +27,9 @@ app.post('/twilio-test', (req, res) => {
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
+//Firebase
+app.use('/firebase-test', require('./routes/firebaseTest'));
+
 // Routes
 app.use('/', require('./routes/root'));
 app.use('/qrcode', require('./routes/qrcode'));
