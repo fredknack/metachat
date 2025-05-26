@@ -2,25 +2,36 @@ const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-// GET route — just confirms the route is live
-router.get('/', (req, res) => {
-  res.send('✅ Firebase test route is live! Use POST to write a test document.');
-});
-
-// POST route — writes a test document to Firestore
-router.post('/', async (req, res) => {
+router.get('/firebase-test', async (req, res) => {
   try {
     const testRef = admin.firestore().collection('test');
     await testRef.add({
       timestamp: new Date(),
-      message: 'Firebase test POST successful!'
+      method: 'GET',
+      message: 'Firebase test GET successful!'
     });
 
-    console.log('✅ Firebase test document written!');
-    res.send('✅ Firebase test document written!');
+    res.send('✅ Firebase test GET document written!');
   } catch (err) {
-    console.error('❌ Firebase test failed:', err);
-    res.status(500).send('❌ Firebase test failed.');
+    console.error('❌ Firebase test GET failed:', err);
+    res.status(500).send('❌ Firebase test GET failed.');
+  }
+});
+
+router.post('/firebase-test', async (req, res) => {
+  try {
+    const testRef = admin.firestore().collection('test');
+    await testRef.add({
+      timestamp: new Date(),
+      method: 'POST',
+      message: 'Firebase test POST successful!',
+      bodyReceived: req.body
+    });
+
+    res.send('✅ Firebase test POST document written!');
+  } catch (err) {
+    console.error('❌ Firebase test POST failed:', err);
+    res.status(500).send('❌ Firebase test POST failed.');
   }
 });
 
