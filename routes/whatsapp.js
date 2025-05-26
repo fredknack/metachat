@@ -3,9 +3,32 @@ const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
+const admin = require('firebase-admin');
+
+const firestore = admin.firestore();
 
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
+
+async function logToFirestore(user, message, stage) {
+  const sessionRef = firestore.collection('sessions').doc(user);
+  const timestamp = new Date();
+
+  await sessionRef.set({
+    lastMessage: message,
+    stage,
+    timestamp,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await sessionRef.collection('log').add({
+    message,
+    stage,
+    timestamp
+  });
+
+  console.log(`✅ Logged interaction for ${user} at stage: ${stage}`);
+}
 
 function twimlResponse(message, mediaUrl = null) {
   if (mediaUrl) {
@@ -58,6 +81,13 @@ router.post('/', async (req, res) => {
 
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
+
+  // 🛠 Log to Firebase
+  try {
+    await logToFirestore(user, incomingMsg, session.stage);
+  } catch (err) {
+    console.error('❌ Failed to log to Firebase:', err);
+  }
 
   let reply = '';
 
