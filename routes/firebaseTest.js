@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-router.get('/firebase-test', async (req, res) => {
+// GET /firebase-test
+router.get('/', async (req, res) => {
   try {
     const testRef = admin.firestore().collection('test');
     await testRef.add({
@@ -18,7 +19,8 @@ router.get('/firebase-test', async (req, res) => {
   }
 });
 
-router.post('/firebase-test', async (req, res) => {
+// POST /firebase-test
+router.post('/', async (req, res) => {
   try {
     const testRef = admin.firestore().collection('test');
     await testRef.add({
