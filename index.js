@@ -1,23 +1,14 @@
 require('dotenv').config();
 require('./lib/followupWorker');
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-const admin = require('firebase-admin');
 
 const app = express();
 
-// ✅ Initialize Firebase Admin SDK using environment variables
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-  })
-});
-
-// Attach Firestore to app locals for easy access in routes
-app.locals.firestore = admin.firestore();
+// ✅ Load the shared Firestore instance (this safely ensures initializeApp runs only once)
+const firestore = require('./lib/firebase');
 
 // Parse both urlencoded (form) and JSON payloads
 app.use(bodyParser.urlencoded({ extended: false }));
