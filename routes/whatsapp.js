@@ -3,9 +3,8 @@ const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
-const admin = require('firebase-admin');
-
-const firestore = admin.firestore();
+const { firestore } = require('../lib/firebase');
+const admin = require('../lib/firebase').admin;
 
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
