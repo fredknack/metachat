@@ -154,6 +154,14 @@ Want some swag?
           followupsSent: false
         });
 
+        // 🔥 ADD THIS FIREBASE FOLLOWUP SCHEDULING HERE
+        await firestore.collection('sessions').doc(user).set({
+          nextFollowup5m: Date.now() + 5 * 60 * 1000,   // 5 min from now
+          nextFollowup7m: Date.now() + 7 * 60 * 1000,   // 7 min from now
+          followup5mSent: false,
+          followup7mSent: false,
+        }, { merge: true });
+
         await twilioClient.sendFollowUpMessages(user);
 
         return res.set('Content-Type', 'text/xml').send(

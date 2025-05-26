@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./lib/followupWorker');
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
