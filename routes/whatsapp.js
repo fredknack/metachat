@@ -151,7 +151,7 @@ Want some swag?
           twilioClient.client.messages.create({
             from: FROM_NUMBER,
             to: user,
-            mediaUrl: [`https://bot.jumpwire.xyz/hats/${hat.toLowerCase().replace(' ', '')}.jpg`],
+            mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
             body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉`
           }).catch(err => console.error('❌ Error sending swag confirmation image:', err));
 

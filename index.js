@@ -25,7 +25,7 @@ app.post('/twilio-test', (req, res) => {
 });
 
 // Serve static files
-app.use('/hats', express.static(path.join(__dirname, 'hats')));
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/', require('./routes/root'));
