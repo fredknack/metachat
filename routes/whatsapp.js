@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
-const firestore = require('../lib/firebase');  // only export firestore here
+const { firestore, admin } = require('../lib/firebase');
 
 const admin = require('firebase-admin');  // direct import for FieldValue
 
