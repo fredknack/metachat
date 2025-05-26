@@ -1,4 +1,3 @@
-// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
@@ -36,7 +35,7 @@ async function sendSwagOptions(to) {
       twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to,
-        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/bottle.jpg'],
+        mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/waterbottle.jpg'],
         body: '3️⃣ Water Bottle'
       })
     ]);
@@ -65,6 +64,10 @@ router.get('/', (req, res) => {
 
 // Main webhook handler
 router.post('/', async (req, res) => {
+  console.log('🔥 Incoming POST /whatsapp');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+
   const { From: from, Body } = req.body;
   const incomingMsg = Body?.trim().toLowerCase();
 
@@ -83,7 +86,7 @@ router.post('/', async (req, res) => {
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
     sessionStore.resetSession(user);
-    sessionStore.update(user, { stage: 'intro' });
+    sessionStore.update(user, { stage: 'intro', followupsSent: false });
 
     console.log(`[DEBUG] Session after reset for ${user}:`, sessionStore.getOrCreateSession(user));
 
@@ -159,7 +162,7 @@ Want some swag?
           }
         }
 
-        reply = 'Your swag selection has been confirmed! 🎉 Once you’ve picked up your swag, please reply with 1.';
+        reply = 'Your swag selection has been confirmed! 🎉 Once you’ve shown this message at the booth, reply with 1.';
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
@@ -168,15 +171,14 @@ Want some swag?
     case 'checkout':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'finished' });
-
-        reply = `🎉 Thank you so much for participating and picking up your swag!
+        reply = `🎉 Thank you for participating!
 
 If you’d like to learn more about how Salesforce and Meta are transforming customer engagement, visit:
 👉 https://www.salesforce.com/products/marketing-cloud/
 
 We hope to see you again! 💬`;
       } else {
-        reply = 'Once you’ve picked up your swag, please reply with 1.';
+        reply = 'Once you’ve shown your message at the booth, please reply with 1.';
       }
       break;
 
