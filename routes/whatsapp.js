@@ -1,3 +1,4 @@
+// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
@@ -6,29 +7,8 @@ const sessionStore = require('../lib/sessionStore');
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
-// Helper for TwiML responses
 function twimlResponse(message) {
   return `<Response><Message>${message}</Message></Response>`;
-}
-
-async function sendSwagOptions(to) {
-  if (to === FROM_NUMBER) {
-    console.error('❌ Cannot send swag options to FROM_NUMBER');
-    return;
-  }
-
-  try {
-    console.log(`[DEBUG] Sending single swag menu image to ${to}`);
-    await twilioClient.client.messages.create({
-      from: FROM_NUMBER,
-      to,
-      mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'],
-      body: 'Here are your swag options! Please reply:\n1️⃣ Wallet\n2️⃣ Sunglasses\n3️⃣ Water Bottle'
-    });
-    console.log(`✅ Single swag menu image sent to ${to}`);
-  } catch (err) {
-    console.error(`❌ Error sending swag menu image to ${to}:`, err);
-  }
 }
 
 // Webhook verification
@@ -74,8 +54,6 @@ router.post('/', async (req, res) => {
     sessionStore.resetSession(user);
     sessionStore.update(user, { stage: 'intro', followupsSent: false });
 
-    console.log(`[DEBUG] Session after reset for ${user}:`, sessionStore.getOrCreateSession(user));
-
     return res.set('Content-Type', 'text/xml').send(
       twimlResponse(`👋 Welcome to CNX - Every connection is an opportunity. It's your world.
 
@@ -90,7 +68,9 @@ Do you want to learn more?
     case 'intro':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'swag' });
-        reply = 'Great! Let’s move on to swag options.\n1. Yes\n2. No';
+        reply = 'Great! Let’s move on to swag options.
+1. Yes
+2. No';
       } else if (incomingMsg === '2') {
         sessionStore.update(user, { stage: 'skipToSwag' });
         reply = `That's okay, you can come back anytime.
@@ -110,9 +90,17 @@ Want some swag?
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'select' });
         res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle')
+          twimlResponse('Pick your swag:
+1. Wallet
+2. Sunglasses
+3. Water Bottle')
         );
-        await sendSwagOptions(user);
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/swagsheet.jpg'],
+          body: 'Here are the swag options!' 
+        });
         return;
       } else if (incomingMsg === '2') {
         sessionStore.update(user, { stage: 'completed' });
@@ -133,22 +121,24 @@ Want some swag?
           followupsSent: false
         });
 
-        if (user !== FROM_NUMBER) {
-          twilioClient.client.messages.create({
-            from: FROM_NUMBER,
-            to: user,
-            mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉`
-          }).catch(err => console.error('❌ Error sending swag confirmation image:', err));
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
+          body: `✅ *Order Confirmed!*
 
-          try {
-            await twilioClient.sendFollowUpMessages(user);
-          } catch (err) {
-            console.error('❌ Error sending follow-ups:', err);
-          }
-        }
+Swag: *${hatFormatted}*
+Price: *$0*
+Pickup: *Booth #12*
 
-        reply = 'Your swag selection has been confirmed! 🎉';
+Show this message at the booth to collect your swag! 🎉
+
+Enter 1 when you’re done.`
+        });
+
+        await twilioClient.sendFollowUpMessages(user);
+
+        reply = null; // Already handled above
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
@@ -156,20 +146,16 @@ Want some swag?
 
     case 'checkout':
       if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'thankyou' });
-        reply = 'We are glad that you are happy with your selection. Thanks again for your participation.';
-      } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'select' });
-        reply = 'No problem! Let’s look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
-        await sendSwagOptions(user);
-        return;
+        sessionStore.update(user, { stage: 'finalthanks' });
+        reply = 'We are glad that you are happy with your selection. Thanks again for your participation!
+If you want to learn more, visit: https://www.salesforce.com';
       } else {
-        reply = 'Please reply with 1 if you are happy, or 2 if you would like to exchange.';
+        reply = 'Please enter 1 when you’re done at the booth.';
       }
       break;
 
-    case 'thankyou':
-      reply = '🎉 Thanks again! If you want to restart, type "reset". Also, visit our demo on the main screen!';
+    case 'finalthanks':
+      reply = 'Thank you again! You can always type "reset" to start over or "start" to explore again.';
       break;
 
     default:
