@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('./lib/followupWorker');
+console.log('✅ FIREBASE_PRIVATE_KEY loaded:', !!process.env.FIREBASE_PRIVATE_KEY);
 
 const express = require('express');
 const bodyParser = require('body-parser');
