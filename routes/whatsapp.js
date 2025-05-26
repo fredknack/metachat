@@ -152,7 +152,7 @@ Want some swag?
             from: FROM_NUMBER,
             to: user,
             mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nOnce you’ve shown it, reply with 1 to finish.`
+            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉`
           }).catch(err => console.error('❌ Error sending swag confirmation image:', err));
 
           try {
@@ -170,22 +170,20 @@ Want some swag?
 
     case 'checkout':
       if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'finished' });
-        reply = `🎉 Thank you for participating!
-
-If you’d like to learn more about how Salesforce and Meta are transforming customer engagement, visit:
-👉 https://www.salesforce.com/products/marketing-cloud/
-
-We hope to see you again! 💬`;
+        sessionStore.update(user, { stage: 'thankyou' });
+        reply = 'We are glad that you are happy with your selection. Thanks again for your participation.';
+      } else if (incomingMsg === '2') {
+        sessionStore.update(user, { stage: 'select' });
+        reply = 'No problem! Let’s look at the swag again:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+        await sendSwagOptions(user);
+        return;
       } else {
-        reply = 'Once you’ve shown your message at the booth, please reply with 1.';
+        reply = 'Please reply with 1 if you are happy, or 2 if you would like to exchange.';
       }
       break;
 
-    case 'finished':
-      reply = `✅ You’ve completed the experience. Thank you again!
-
-If you want to restart, just send the word 'reset'.`;
+    case 'thankyou':
+      reply = '🎉 Thanks again! If you want to restart, type "reset". Also, visit our demo on the main screen!';
       break;
 
     default:
