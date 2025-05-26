@@ -147,8 +147,8 @@ Enter 1 when you’re done.`
     case 'checkout':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'finalthanks' });
-        reply = 'We are glad that you are happy with your selection. Thanks again for your participation!
-If you want to learn more, visit: https://www.salesforce.com';
+        reply = `We are glad that you are happy with your selection. Thanks again for your participation!
+If you want to learn more, visit: https://www.salesforce.com`;
       } else {
         reply = 'Please enter 1 when you’re done at the booth.';
       }
