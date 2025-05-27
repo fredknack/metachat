@@ -186,6 +186,29 @@ Want some swag?
       }
       break;
 
+    case 'exchange':
+      if (['1', '2', '3'].includes(incomingMsg)) {
+        const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
+        const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
+
+        sessionStore.update(user, {
+          selectedHat: hat,
+          stage: 'checkout'
+        });
+
+        console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
+
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
+            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
+          )
+        );
+      } else {
+        reply = 'Please reply with 1, 2, or 3 to select your new swag.';
+      }
+      break;
+
     case 'finalthanks':
       reply = 'Thank you again! You can always type "reset" to start over or "start" to explore again.';
       break;
