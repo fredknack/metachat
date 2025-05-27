@@ -121,6 +121,7 @@ Want some swag?
 
     case 'skipToSwag':
     case 'swag':
+    case 'exchange':  // NEW STAGE for reselecting swag
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'select' });
 
@@ -145,19 +146,25 @@ Want some swag?
 
         sessionStore.update(user, {
           selectedHat: hat,
-          stage: 'checkout',
-          followupsSent: false
+          stage: 'checkout'
         });
 
-        // Schedule follow-ups
-        await firestore.collection('sessions').doc(user).set({
-          nextFollowup5m: Date.now() + 5 * 60 * 1000,
-          nextFollowup7m: Date.now() + 7 * 60 * 1000,
-          followup5mSent: false,
-          followup7mSent: false,
-        }, { merge: true });
+        // Only set followups if they haven't been set yet
+        const sessionDoc = await firestore.collection('sessions').doc(user).get();
+        const data = sessionDoc.exists ? sessionDoc.data() : {};
 
-        console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
+        if (!data.nextFollowup5m && !data.nextFollowup7m) {
+          await firestore.collection('sessions').doc(user).set({
+            nextFollowup5m: Date.now() + 5 * 60 * 1000,
+            nextFollowup7m: Date.now() + 7 * 60 * 1000,
+            followup5mSent: false,
+            followup7mSent: false,
+          }, { merge: true });
+
+          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
+        } else {
+          console.log(`✅ Swag updated for ${user}, no new followups scheduled`);
+        }
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -173,9 +180,12 @@ Want some swag?
     case 'checkout':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'finalthanks' });
-        reply = 'We are glad that you are happy with your selection. Thanks again for your participation!\nIf you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+        reply = 'Thanks again for your participation!\nIf you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+      } else if (incomingMsg === '2') {
+        sessionStore.update(user, { stage: 'exchange' });
+        reply = 'Okay! Let’s exchange your swag. Please reply:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
       } else {
-        reply = 'Please enter 1 when you’re done at the booth.';
+        reply = 'Please enter 1 when you’re done at the booth, or 2 if you want to exchange your swag.';
       }
       break;
 
