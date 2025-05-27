@@ -182,7 +182,13 @@ Want some swag?
           pathHistory: session.pathHistory
         });
 
-        console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
+        await firestore.collection('sessions').doc(user).set({
+          exchangeCount: session.exchangeCount,
+          finalHat: session.finalHat,
+          pathHistory: session.pathHistory
+        }, { merge: true });
+
+        console.log(`✅ Swag exchanged + tracking updated for ${user}`);
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -213,6 +219,19 @@ Want some swag?
           finalHat: session.finalHat,
           pathHistory: session.pathHistory
         });
+
+        await firestore.collection('sessions').doc(user).set({
+          nextFollowup5m: Date.now() + 5 * 60 * 1000,
+          nextFollowup7m: Date.now() + 7 * 60 * 1000,
+          followup5mSent: false,
+          followup7mSent: false,
+          initialHat: session.initialHat,
+          finalHat: session.finalHat,
+          exchangeCount: session.exchangeCount,
+          pathHistory: session.pathHistory
+        }, { merge: true });
+
+        console.log(`✅ Updated Firestore followups + tracking for ${user}`);
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
