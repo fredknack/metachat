@@ -6,6 +6,13 @@ const { firestore, admin } = require('../lib/firebase');
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
+// Swag filename map
+const swagImageMap = {
+  Wallet: 'wallet.jpg',
+  Sunglasses: 'sunglasses.jpg',
+  WaterBottle: 'bottle.jpg'
+};
+
 async function logToFirestore(user, message, stage) {
   try {
     const sessionRef = firestore.collection('sessions').doc(user);
@@ -159,7 +166,6 @@ Want some swag?
       break;
 
     case 'exchange':
-      // Only allow exchange if the session is truly in 'exchange' mode
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
 
       if (session.exchangeOffered !== true) {
@@ -169,6 +175,7 @@ Want some swag?
       else if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
+        const imageFilename = swagImageMap[hat];
 
         session.exchangeCount += 1;
         session.finalHat = hat;
@@ -194,7 +201,7 @@ Want some swag?
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
             `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n\nEnter 1 when you’re done.`,
-            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
+            `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
       } else {
@@ -206,6 +213,7 @@ Want some swag?
       if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
+        const imageFilename = swagImageMap[hat];
 
         if (!session.initialHat) {
           session.initialHat = hat;
@@ -237,7 +245,7 @@ Want some swag?
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
             `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
-            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
+            `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
       } else {
