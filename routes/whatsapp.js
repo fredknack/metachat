@@ -102,9 +102,8 @@ router.post('/', async (req, res) => {
 
     case 'skipToSwag':
     case 'swag':
-    case 'exchange':
-      if (incomingMsg === '2') {
-        // User wants to exchange → go to select swag
+      if (incomingMsg === '1') {
+        // User wants to pick swag → go to select
         sessionStore.update(user, { stage: 'select' });
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -112,16 +111,16 @@ router.post('/', async (req, res) => {
             'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
           )
         );
-      } else if (incomingMsg === '1') {
-        // User says they're happy → end interaction
+      } else if (incomingMsg === '2') {
+        // User says no thanks
         sessionStore.update(user, { stage: 'finalthanks' });
-        reply = 'Thanks again for your participation!\nIf you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+        reply = 'Thanks again for your participation! If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
       } else {
-        reply = 'Please reply with 1 (Yes) or 2 (Exchange).';
+        reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
       break;
 
-    case 'select':
+    case 'exchange':
       if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
@@ -131,25 +130,16 @@ router.post('/', async (req, res) => {
           stage: 'checkout'
         });
 
-        // Only set followups if not in exchange
-        if (session.stage !== 'exchange') {
-          await firestore.collection('sessions').doc(user).set({
-            nextFollowup5m: Date.now() + 5 * 60 * 1000,
-            nextFollowup7m: Date.now() + 7 * 60 * 1000,
-            followup5mSent: false,
-            followup7mSent: false,
-          }, { merge: true });
-          console.log(`✅ Scheduled followups for ${user}`);
-        }
+        console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when done, or 2 to exchange.`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when done, or 2 to exchange again.`,
             `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
           )
         );
       } else {
-        reply = 'Please reply with 1, 2, or 3 to select your swag.';
+        reply = 'Please reply with 1, 2, or 3 to select your new swag.';
       }
       break;
 
