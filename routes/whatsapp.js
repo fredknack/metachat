@@ -100,7 +100,12 @@ Do you want to learn more?
     case 'intro':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'swag' });
-        reply = 'Great! Let’s move on to swag options.\n1. Yes\n2. No';
+        reply = `Thanks for your interest! 🌟 Learn more about how Meta and Salesforce help businesses:
+https://invite.salesforce.com/salesforceconnectionsmetaprese
+
+Want some swag?
+1. Yes
+2. No`;
       } else if (incomingMsg === '2') {
         sessionStore.update(user, { stage: 'skipToSwag' });
         reply = `That's okay, you can come back anytime.
