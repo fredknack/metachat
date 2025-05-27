@@ -149,11 +149,8 @@ Want some swag?
           stage: 'checkout'
         });
 
-        // Only set followups if they haven't been set yet
-        const sessionDoc = await firestore.collection('sessions').doc(user).get();
-        const data = sessionDoc.exists ? sessionDoc.data() : {};
-
-        if (!data.nextFollowup5m && !data.nextFollowup7m) {
+        // Always reset followups UNLESS in exchange mode
+        if (session.stage !== 'exchange') {
           await firestore.collection('sessions').doc(user).set({
             nextFollowup5m: Date.now() + 5 * 60 * 1000,
             nextFollowup7m: Date.now() + 7 * 60 * 1000,
@@ -163,7 +160,7 @@ Want some swag?
 
           console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
         } else {
-          console.log(`✅ Swag updated for ${user}, no new followups scheduled`);
+          console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
         }
 
         return res.set('Content-Type', 'text/xml').send(
