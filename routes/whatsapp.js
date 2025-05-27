@@ -159,6 +159,7 @@ Want some swag?
       break;
 
     case 'exchange':
+      // Only allow exchange if the session is truly in 'exchange' mode
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
 
       if (session.exchangeOffered !== true) {
