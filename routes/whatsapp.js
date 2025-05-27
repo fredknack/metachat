@@ -266,7 +266,7 @@ Want some swag?
       if (incomingMsg === '1') {
         session.pathHistory.push('finalthanks');
         sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
-        reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+        reply = 'Thanks again for your participation! 🎉';
       } else if (incomingMsg === '2') {
         session.pathHistory.push('exchange');
         sessionStore.update(user, { stage: 'exchange', pathHistory: session.pathHistory });
