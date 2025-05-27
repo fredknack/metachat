@@ -153,20 +153,27 @@ Want some swag?
         res.set('Content-Type', 'text/xml').send('<Response></Response>');
 
         // Fire the swag image + followups in background
-        try {
-          await twilioClient.client.messages.create({
-            from: FROM_NUMBER,
-            to: user,
-            mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`
-          });
+          try {
+              await twilioClient.client.messages.create({
+                  from: FROM_NUMBER,
+                  to: user,
+                  mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
+                  body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`
+              });
 
-          await twilioClient.sendFollowUpMessages(user);
+              await twilioClient.sendFollowUpMessages(user);
 
-          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
-        } catch (err) {
-          console.error('❌ Error during swag selection:', err);
-        }
+              console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
+
+              // Return empty <Response> so Twilio closes the webhook connection
+              return res.set('Content-Type', 'text/xml').send('<Response></Response>');
+
+          } catch (err) {
+              console.error('❌ Error during swag selection:', err);
+              return res.set('Content-Type', 'text/xml').send(
+                  twimlResponse('Oops! Something went wrong while processing your swag selection. Please try again.')
+              );
+          }
         return;
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
