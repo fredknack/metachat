@@ -139,35 +139,46 @@ Want some swag?
       break;
 
     case 'select':
-    if (['1', '2', '3'].includes(incomingMsg)) {
+      if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
         sessionStore.update(user, {
-            selectedHat: hat,
-            stage: 'checkout',
-            followupsSent: false
+          selectedHat: hat,
+          stage: 'checkout',
+          followupsSent: false
         });
 
-        // Send Twilio message, but don't wait before closing webhook response
-        twilioClient.client.messages.create({
+        try {
+          await twilioClient.client.messages.create({
             from: FROM_NUMBER,
             to: user,
             mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
             body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`
-        }).then(() => {
-            console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
-            return twilioClient.sendFollowUpMessages(user);
-        }).catch(err => {
-            console.error('❌ Error during swag selection:', err);
-        });
+          });
 
-        // ✅ Immediately return empty TwiML response so webhook closes
-        return res.set('Content-Type', 'text/xml').send('<Response></Response>');
-    } else {
+          await firestore.collection('sessions').doc(user).set({
+            nextFollowup5m: Date.now() + 5 * 60 * 1000,
+            nextFollowup7m: Date.now() + 7 * 60 * 1000,
+            followup5mSent: false,
+            followup7mSent: false,
+          }, { merge: true });
+
+          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
+
+          // ✅ DO NOT send another response here
+          return res.status(200).end();
+
+        } catch (err) {
+          console.error('❌ Error during swag selection:', err);
+          return res.set('Content-Type', 'text/xml').send(
+            twimlResponse('Oops! Something went wrong while processing your swag selection. Please try again.')
+          );
+        }
+      } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
-    }
-    break;
+      }
+      break;
 
     case 'checkout':
       if (incomingMsg === '1') {
