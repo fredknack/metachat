@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
-const { firestore, admin } = require('../lib/firebase');  // ✅ single import for both
+const { firestore, admin } = require('../lib/firebase');
 
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
@@ -82,7 +82,6 @@ router.post('/', async (req, res) => {
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
 
-  // Log to Firebase
   await logToFirestore(user, incomingMsg, session.stage);
 
   let reply = '';
@@ -150,15 +149,10 @@ Want some swag?
           followupsSent: false
         });
 
-        await firestore.collection('sessions').doc(user).set({
-          nextFollowup5m: Date.now() + 5 * 60 * 1000,
-          nextFollowup7m: Date.now() + 7 * 60 * 1000,
-          followup5mSent: false,
-          followup7mSent: false
-        }, { merge: true });
+        // Immediately respond to Twilio to avoid timeout
+        res.set('Content-Type', 'text/xml').send('<Response></Response>');
 
-        console.log(`✅ Follow-up timers set in Firestore for ${user}`);
-
+        // Fire the swag image + followups in background
         try {
           await twilioClient.client.messages.create({
             from: FROM_NUMBER,
@@ -169,16 +163,11 @@ Want some swag?
 
           await twilioClient.sendFollowUpMessages(user);
 
-          return res.set('Content-Type', 'text/xml').send(
-            twimlResponse('Your swag selection has been confirmed! 🎉')
-          );
-
+          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
         } catch (err) {
           console.error('❌ Error during swag selection:', err);
-          return res.set('Content-Type', 'text/xml').send(
-            twimlResponse('Oops! Something went wrong while processing your swag selection. Please try again.')
-          );
         }
+        return;
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
