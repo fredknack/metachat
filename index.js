@@ -5,38 +5,35 @@ console.log('✅ FIREBASE_PRIVATE_KEY loaded:', !!process.env.FIREBASE_PRIVATE_K
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-
 const app = express();
 
-// ✅ Load the shared Firestore instance (this safely ensures initializeApp runs only once)
-const firestore = require('./lib/firebase');
+const { firestore } = require('./lib/firebase');
 
-// Parse both urlencoded (form) and JSON payloads
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception thrown:', err);
+});
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Global request logger
 app.use((req, res, next) => {
   console.log(`🌐 Incoming request: ${req.method} ${req.originalUrl}`);
   console.log(`Headers:`, req.headers);
   next();
 });
 
-// Minimal Twilio test POST endpoint
 app.post('/twilio-test', (req, res) => {
   console.log('🔥 [TWILIO TEST] Incoming POST at /twilio-test');
-  console.log('Headers:', req.headers);
   console.log('Body:', req.body);
   res.status(200).send('✅ Received by /twilio-test');
 });
 
-// Serve static files
 app.use('/static', express.static(path.join(__dirname, 'public')));
-
-// Firebase test route
 app.use('/firebase-test', require('./routes/firebaseTest'));
-
-// Main app routes
 app.use('/', require('./routes/root'));
 app.use('/qrcode', require('./routes/qrcode'));
 app.use('/whatsapp', require('./routes/whatsapp'));
