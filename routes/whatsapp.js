@@ -103,16 +103,21 @@ router.post('/', async (req, res) => {
     case 'skipToSwag':
     case 'swag':
     case 'exchange':
-      if (incomingMsg === '1') {
+      if (incomingMsg === '2') {
+        // User wants to exchange → go to select swag
         sessionStore.update(user, { stage: 'select' });
         return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle', 'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg')
+          twimlResponse(
+            'Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle',
+            'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
+          )
         );
-      } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'completed' });
-        reply = 'Thanks for your time! We hope to connect again soon. 🎉';
+      } else if (incomingMsg === '1') {
+        // User says they're happy → end interaction
+        sessionStore.update(user, { stage: 'finalthanks' });
+        reply = 'Thanks again for your participation!\nIf you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
       } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
+        reply = 'Please reply with 1 (Yes) or 2 (Exchange).';
       }
       break;
 
