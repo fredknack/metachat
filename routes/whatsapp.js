@@ -150,6 +150,15 @@ Want some swag?
           followupsSent: false
         });
 
+        await firestore.collection('sessions').doc(user).set({
+          nextFollowup5m: Date.now() + 5 * 60 * 1000,
+          nextFollowup7m: Date.now() + 7 * 60 * 1000,
+          followup5mSent: false,
+          followup7mSent: false
+        }, { merge: true });
+
+        console.log(`✅ Follow-up timers set in Firestore for ${user}`);
+
         try {
           await twilioClient.client.messages.create({
             from: FROM_NUMBER,
