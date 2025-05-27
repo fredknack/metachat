@@ -1,7 +1,6 @@
 // routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
-const twilioClient = require('../lib/twilioClient');
 const sessionStore = require('../lib/sessionStore');
 const { firestore, admin } = require('../lib/firebase');
 
@@ -82,6 +81,7 @@ router.post('/', async (req, res) => {
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
 
+  // Log to Firebase
   await logToFirestore(user, incomingMsg, session.stage);
 
   let reply = '';
@@ -149,32 +149,22 @@ Want some swag?
           followupsSent: false
         });
 
-        try {
-          await twilioClient.client.messages.create({
-            from: FROM_NUMBER,
-            to: user,
-            mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`],
-            body: `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`
-          });
+        // Schedule follow-ups
+        await firestore.collection('sessions').doc(user).set({
+          nextFollowup5m: Date.now() + 5 * 60 * 1000,
+          nextFollowup7m: Date.now() + 7 * 60 * 1000,
+          followup5mSent: false,
+          followup7mSent: false,
+        }, { merge: true });
 
-          await firestore.collection('sessions').doc(user).set({
-            nextFollowup5m: Date.now() + 5 * 60 * 1000,
-            nextFollowup7m: Date.now() + 7 * 60 * 1000,
-            followup5mSent: false,
-            followup7mSent: false,
-          }, { merge: true });
+        console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
 
-          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
-
-          // ✅ DO NOT send another response here
-          return res.status(200).end();
-
-        } catch (err) {
-          console.error('❌ Error during swag selection:', err);
-          return res.set('Content-Type', 'text/xml').send(
-            twimlResponse('Oops! Something went wrong while processing your swag selection. Please try again.')
-          );
-        }
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(
+            `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
+            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
+          )
+        );
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
