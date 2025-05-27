@@ -75,6 +75,12 @@ router.post('/', async (req, res) => {
   const user = from;
   const session = sessionStore.getOrCreateSession(user);
 
+  // Initialize tracking fields if missing
+  session.pathHistory = session.pathHistory || [];
+  session.exchangeCount = session.exchangeCount || 0;
+  session.initialHat = session.initialHat || null;
+  session.finalHat = session.finalHat || null;
+
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
 
@@ -84,7 +90,14 @@ router.post('/', async (req, res) => {
 
   if (incomingMsg === 'start' || incomingMsg === 'reset') {
     sessionStore.resetSession(user);
-    sessionStore.update(user, { stage: 'intro', followupsSent: false });
+    sessionStore.update(user, {
+      stage: 'intro',
+      followupsSent: false,
+      pathHistory: ['intro'],
+      exchangeCount: 0,
+      initialHat: null,
+      finalHat: null
+    });
 
     return res.set('Content-Type', 'text/xml').send(
       twimlResponse(`👋 Welcome to CNX - Every connection is an opportunity. It's your world.
@@ -98,8 +111,10 @@ Do you want to learn more?
 
   switch (session.stage) {
     case 'intro':
+      session.pathHistory.push('intro');
       if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'swag' });
+        session.pathHistory.push('swag');
+        sessionStore.update(user, { stage: 'swag', pathHistory: session.pathHistory });
         reply = `Thanks for your interest! 🌟 Learn more about how Meta and Salesforce help businesses:
 https://invite.salesforce.com/salesforceconnectionsmetaprese
 
@@ -107,7 +122,8 @@ Want some swag?
 1. Yes
 2. No`;
       } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'skipToSwag' });
+        session.pathHistory.push('skipToSwag');
+        sessionStore.update(user, { stage: 'skipToSwag', pathHistory: session.pathHistory });
         reply = `That's okay, you can come back anytime.
 
 Everything you've just experienced is available natively in Salesforce Marketing Cloud.
@@ -122,8 +138,10 @@ Want some swag?
 
     case 'skipToSwag':
     case 'swag':
+      session.pathHistory.push('swag');
       if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'select' });
+        session.pathHistory.push('select');
+        sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -132,7 +150,8 @@ Want some swag?
           )
         );
       } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'completed' });
+        session.pathHistory.push('completed');
+        sessionStore.update(user, { stage: 'completed', pathHistory: session.pathHistory });
         reply = 'Thanks for your time! We hope to connect again soon. 🎉';
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
@@ -142,20 +161,25 @@ Want some swag?
     case 'exchange':
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
 
-      // If they haven't yet seen the swap menu, show it
       if (session.exchangeOffered !== true) {
         sessionStore.update(user, { exchangeOffered: true });
         reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
       }
-      // If they already saw the menu, interpret the choice
       else if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
+        session.exchangeCount += 1;
+        session.finalHat = hat;
+        session.pathHistory.push('checkout');
+
         sessionStore.update(user, {
           selectedHat: hat,
           stage: 'checkout',
-          exchangeOffered: false // reset flag
+          exchangeCount: session.exchangeCount,
+          finalHat: session.finalHat,
+          exchangeOffered: false,
+          pathHistory: session.pathHistory
         });
 
         console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
@@ -176,24 +200,19 @@ Want some swag?
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
+        if (!session.initialHat) {
+          session.initialHat = hat;
+        }
+        session.finalHat = hat;
+        session.pathHistory.push('checkout');
+
         sessionStore.update(user, {
           selectedHat: hat,
-          stage: 'checkout'
+          stage: 'checkout',
+          initialHat: session.initialHat,
+          finalHat: session.finalHat,
+          pathHistory: session.pathHistory
         });
-
-        // Only schedule followups if NOT in exchange mode
-        if (session.stage !== 'exchange') {
-          await firestore.collection('sessions').doc(user).set({
-            nextFollowup5m: Date.now() + 5 * 60 * 1000,
-            nextFollowup7m: Date.now() + 7 * 60 * 1000,
-            followup5mSent: false,
-            followup7mSent: false,
-          }, { merge: true });
-
-          console.log(`✅ Sent swag confirmation + scheduled followups for ${user}`);
-        } else {
-          console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
-        }
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -208,10 +227,12 @@ Want some swag?
 
     case 'checkout':
       if (incomingMsg === '1') {
-        sessionStore.update(user, { stage: 'finalthanks' });
+        session.pathHistory.push('finalthanks');
+        sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
         reply = 'Thanks again for your participation!\nIf you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
       } else if (incomingMsg === '2') {
-        sessionStore.update(user, { stage: 'exchange' });
+        session.pathHistory.push('exchange');
+        sessionStore.update(user, { stage: 'exchange', pathHistory: session.pathHistory });
         reply = 'Okay! Let’s exchange your swag. Please reply:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
       } else {
         reply = 'Please enter 1 when you’re done at the booth, or 2 if you want to exchange your swag.';
