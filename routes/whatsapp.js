@@ -117,7 +117,6 @@ Want some swag?
 
     case 'skipToSwag':
     case 'swag':
-    case 'exchange':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'select' });
 
@@ -132,6 +131,30 @@ Want some swag?
         reply = 'Thanks for your time! We hope to connect again soon. 🎉';
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
+      }
+      break;
+
+    case 'exchange':
+      console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
+      if (['1', '2', '3'].includes(incomingMsg)) {
+        const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
+        const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
+
+        sessionStore.update(user, {
+          selectedHat: hat,
+          stage: 'checkout'
+        });
+
+        console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
+
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n\nEnter 1 when you’re done.`,
+            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
+          )
+        );
+      } else {
+        reply = 'Please reply with 1 (Wallet), 2 (Sunglasses), or 3 (Water Bottle) to exchange your swag.';
       }
       break;
 
