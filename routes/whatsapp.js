@@ -141,13 +141,21 @@ Want some swag?
 
     case 'exchange':
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
-      if (['1', '2', '3'].includes(incomingMsg)) {
+
+      // If they haven't yet seen the swap menu, show it
+      if (session.exchangeOffered !== true) {
+        sessionStore.update(user, { exchangeOffered: true });
+        reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+      }
+      // If they already saw the menu, interpret the choice
+      else if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
 
         sessionStore.update(user, {
           selectedHat: hat,
-          stage: 'checkout'
+          stage: 'checkout',
+          exchangeOffered: false // reset flag
         });
 
         console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
