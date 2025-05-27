@@ -1,4 +1,3 @@
-// routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
 const sessionStore = require('../lib/sessionStore');
@@ -44,7 +43,6 @@ function twimlResponse(message, mediaUrl = null) {
   }
 }
 
-// Webhook verification
 router.get('/', (req, res) => {
   const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
 
@@ -61,7 +59,6 @@ router.get('/', (req, res) => {
   }
 });
 
-// Main webhook handler
 router.post('/', async (req, res) => {
   console.log('🔥 Incoming POST /whatsapp');
   console.log('Headers:', req.headers);
@@ -81,7 +78,6 @@ router.post('/', async (req, res) => {
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
 
-  // Log to Firebase
   await logToFirestore(user, incomingMsg, session.stage);
 
   let reply = '';
@@ -121,7 +117,7 @@ Want some swag?
 
     case 'skipToSwag':
     case 'swag':
-    case 'exchange':  // NEW STAGE for reselecting swag
+    case 'exchange':
       if (incomingMsg === '1') {
         sessionStore.update(user, { stage: 'select' });
 
@@ -149,7 +145,7 @@ Want some swag?
           stage: 'checkout'
         });
 
-        // Always reset followups UNLESS in exchange mode
+        // Only schedule followups if NOT in exchange mode
         if (session.stage !== 'exchange') {
           await firestore.collection('sessions').doc(user).set({
             nextFollowup5m: Date.now() + 5 * 60 * 1000,
@@ -165,7 +161,7 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
+            `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done or 2 if you want to exchange.`,
             `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
           )
         );
@@ -183,29 +179,6 @@ Want some swag?
         reply = 'Okay! Let’s exchange your swag. Please reply:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
       } else {
         reply = 'Please enter 1 when you’re done at the booth, or 2 if you want to exchange your swag.';
-      }
-      break;
-
-    case 'exchange':
-      if (['1', '2', '3'].includes(incomingMsg)) {
-        const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
-        const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
-
-        sessionStore.update(user, {
-          selectedHat: hat,
-          stage: 'checkout'
-        });
-
-        console.log(`✅ Swag exchanged for ${user}, no new followups scheduled`);
-
-        return res.set('Content-Type', 'text/xml').send(
-          twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
-            `https://metachat-production-e054.up.railway.app/static/swag/${hat.toLowerCase().replace(' ', '')}.jpg`
-          )
-        );
-      } else {
-        reply = 'Please reply with 1, 2, or 3 to select your new swag.';
       }
       break;
 
