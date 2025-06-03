@@ -274,7 +274,7 @@ Want some swag?
     default:
       console.warn(`[WARN] Unrecognized stage or input: stage=${session.stage}, input=${incomingMsg}`);
       sessionStore.update(user, { stage: 'intro' });
-      reply = \"I'm not sure what you meant. Send 'reset' to start over.\";
+      reply = "I'm not sure what you meant. Send 'reset' to start over.";
       break;
   }
 
