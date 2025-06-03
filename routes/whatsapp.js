@@ -1,4 +1,4 @@
-// whatsapp.js (fully merged + updated)
+// FULL UPDATED whatsapp.js WITH FIXED EXCHANGE LOGIC
 
 const express = require('express');
 const router = express.Router();
@@ -66,6 +66,7 @@ router.post('/', async (req, res) => {
   session.exchangeCount = session.exchangeCount || 0;
   session.initialHat = session.initialHat || null;
   session.finalHat = session.finalHat || null;
+  session.exchangeOffered = session.exchangeOffered || false;
 
   console.log(`[DEBUG] User: ${user}, Incoming: ${incomingMsg}`);
   console.log(`[DEBUG] Current session for ${user}:`, session);
@@ -90,7 +91,8 @@ router.post('/', async (req, res) => {
         pathHistory: ['intro'],
         exchangeCount: 0,
         initialHat: null,
-        finalHat: null
+        finalHat: null,
+        exchangeOffered: false
       });
 
       return res.set('Content-Type', 'text/xml').send(
@@ -106,12 +108,12 @@ Reply 1 for Yes
       if (userData.exchangeCount === 0) {
         sessionStore.update(user, {
           stage: 'exchange',
-          pathHistory: session.pathHistory.concat(['exchange']),
-          exchangeOffered: true
+          exchangeOffered: false,
+          pathHistory: session.pathHistory.concat(['exchange'])
         });
 
         return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Are you happy with your swag choice? Press 1 if you would like to exchange it.')
+          twimlResponse('Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.')
         );
       } else {
         sessionStore.update(user, {
@@ -180,8 +182,19 @@ Want some swag?
     case 'exchange':
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
 
-      if (session.exchangeOffered === true && ['1', '2', '3'].includes(incomingMsg)) {
-        // User is selecting new swag
+      if (!session.exchangeOffered) {
+        if (incomingMsg === '1') {
+          session.pathHistory.push('finalthanks');
+          sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
+          reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+        } else if (incomingMsg === '2') {
+          session.exchangeOffered = true;
+          sessionStore.update(user, { exchangeOffered: true });
+          reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+        } else {
+          reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
+        }
+      } else if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
         const imageFilename = swagImageMap[hat];
@@ -209,21 +222,12 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\\n\\nNew Swag: *${hatFormatted}*\\nPickup: *Booth #12*\\n\\nShow this message at the booth to collect your new swag! 🎉\\n\\nEnter 1 when you’re done.`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n\nEnter 1 when you’re done.`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
-      } else if (incomingMsg === '1') {
-        // User is happy → move to finalthanks
-        session.pathHistory.push('finalthanks');
-        sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
-        reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
-      } else if (incomingMsg === '2') {
-        // User wants to exchange → show swag menu and flip flag ON
-        sessionStore.update(user, { exchangeOffered: true });
-        reply = 'Please select the new swag you want:\\n1. Wallet\\n2. Sunglasses\\n3. Water Bottle';
       } else {
-        reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
+        reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
       }
       break;
 
@@ -278,8 +282,8 @@ Want some swag?
         reply = 'Thanks for your participation!';
       } else if (incomingMsg === '2') {
         session.pathHistory.push('exchange');
-        sessionStore.update(user, { stage: 'exchange', pathHistory: session.pathHistory });
-        reply = 'Okay! Let’s exchange your swag. Please reply:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+        sessionStore.update(user, { stage: 'exchange', exchangeOffered: false, pathHistory: session.pathHistory });
+        reply = 'Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.';
       } else {
         reply = 'Please enter 1 when you’re done at the booth, or 2 if you want to exchange your swag.';
       }
