@@ -81,6 +81,16 @@ router.post('/', async (req, res) => {
     incomingMsg === "let's connect!" ||
     incomingMsg === "lets connect!"
   ) {
+    // If reset, delete Firestore record
+    if (incomingMsg === 'reset') {
+      try {
+        await firestore.collection('sessions').doc(user).delete();
+        console.log(`✅ Deleted Firestore session record for ${user}`);
+      } catch (err) {
+        console.error(`❌ Failed to delete Firestore session record for ${user}:`, err);
+      }
+    }
+
     const userDoc = await firestore.collection('sessions').doc(user).get();
 
     if (!userDoc.exists || !userDoc.data().initialHat) {
@@ -99,9 +109,9 @@ router.post('/', async (req, res) => {
       return res.set('Content-Type', 'text/xml').send(
         twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
-    Interested in learning more about the Salesforce and Meta partnership? 🤝
-    Reply 1 for Yes
-    2 for No`)
+  Interested in learning more about the Salesforce and Meta partnership? 🤝
+  Reply 1 for Yes
+  2 for No`)
       );
     } else {
       const userData = userDoc.data();
