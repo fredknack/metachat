@@ -1,5 +1,3 @@
-// FULL UPDATED whatsapp.js WITH FIXED EXCHANGE LOGIC
-
 const express = require('express');
 const router = express.Router();
 const sessionStore = require('../lib/sessionStore');
@@ -81,51 +79,31 @@ router.post('/', async (req, res) => {
     incomingMsg === "let's connect!" ||
     incomingMsg === "lets connect!"
   ) {
-    const userDoc = await firestore.collection('sessions').doc(user).get();
+    try {
+      await firestore.collection('sessions').doc(user).delete();
+      console.log(`✅ Firestore record deleted for ${user}`);
+    } catch (err) {
+      console.error(`❌ Failed to delete Firestore record for ${user}:`, err);
+    }
 
-    if (!userDoc.exists) {
-      sessionStore.resetSession(user);
-      sessionStore.update(user, {
-        stage: 'intro',
-        followupsSent: false,
-        pathHistory: ['intro'],
-        exchangeCount: 0,
-        initialHat: null,
-        finalHat: null,
-        exchangeOffered: false
-      });
+    sessionStore.resetSession(user);
+    sessionStore.update(user, {
+      stage: 'intro',
+      followupsSent: false,
+      pathHistory: ['intro'],
+      exchangeCount: 0,
+      initialHat: null,
+      finalHat: null,
+      exchangeOffered: false
+    });
 
-      return res.set('Content-Type', 'text/xml').send(
-        twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
+    return res.set('Content-Type', 'text/xml').send(
+      twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
 Interested in learning more about the Salesforce and Meta partnership? 🤝
 Reply 1 for Yes
 2 for No`)
-      );
-    } else {
-      const userData = userDoc.data();
-
-      if (userData.exchangeCount === 0) {
-        sessionStore.update(user, {
-          stage: 'exchange',
-          exchangeOffered: false,
-          pathHistory: session.pathHistory.concat(['exchange'])
-        });
-
-        return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.')
-        );
-      } else {
-        sessionStore.update(user, {
-          stage: 'finalthanks',
-          pathHistory: session.pathHistory.concat(['finalthanks'])
-        });
-
-        return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Thanks again for your participation! 🎉')
-        );
-      }
-    }
+    );
   }
 
   switch (session.stage) {
@@ -290,13 +268,13 @@ Want some swag?
       break;
 
     case 'finalthanks':
-      reply = 'Thank you again! You can always type "reset" to start over or "start" to explore again.';
+      reply = 'Thank you again! You can always type \"reset\" to start over or \"start\" to explore again.';
       break;
 
     default:
       console.warn(`[WARN] Unrecognized stage or input: stage=${session.stage}, input=${incomingMsg}`);
       sessionStore.update(user, { stage: 'intro' });
-      reply = "I'm not sure what you meant. Send 'reset' to start over.";
+      reply = \"I'm not sure what you meant. Send 'reset' to start over.\";
       break;
   }
 
