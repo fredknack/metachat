@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   const businessNumber = '15034214678'; // Your WhatsApp number (no + or formatting)
-  const defaultMessage = 'start';
+  const defaultMessage = "Let%27s%20Connect%21";
   const waLink = `https://wa.me/${businessNumber}?text=${encodeURIComponent(defaultMessage)}`;
 
   try {

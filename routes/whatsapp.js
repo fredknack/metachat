@@ -95,26 +95,30 @@ router.post('/', async (req, res) => {
 
   let reply = '';
 
-  if (incomingMsg === 'start' || incomingMsg === 'reset') {
-    sessionStore.resetSession(user);
-    sessionStore.update(user, {
-      stage: 'intro',
-      followupsSent: false,
-      pathHistory: ['intro'],
-      exchangeCount: 0,
-      initialHat: null,
-      finalHat: null
-    });
+if (
+  incomingMsg === 'start' ||
+  incomingMsg === 'reset' ||
+  incomingMsg === "let's connect!" ||
+  incomingMsg === "lets connect!"
+) {
+  sessionStore.resetSession(user);
+  sessionStore.update(user, {
+    stage: 'intro',
+    followupsSent: false,
+    pathHistory: ['intro'],
+    exchangeCount: 0,
+    initialHat: null,
+    finalHat: null
+  });
 
-    return res.set('Content-Type', 'text/xml').send(
-      twimlResponse(`👋 Welcome to CNX - Every connection is an opportunity. It's your world.
+  return res.set('Content-Type', 'text/xml').send(
+    twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
-Meta and Salesforce are helping businesses create seamless engagement.
-Do you want to learn more?
-1. Yes
-2. No`)
-    );
-  }
+Interested in learning more about the Salesforce and Meta partnership? 🤝
+Reply 1 for Yes
+2 for No`)
+  );
+}
 
   switch (session.stage) {
     case 'intro':
@@ -122,8 +126,11 @@ Do you want to learn more?
       if (incomingMsg === '1') {
         session.pathHistory.push('swag');
         sessionStore.update(user, { stage: 'swag', pathHistory: session.pathHistory });
-        reply = `Thanks for your interest! 🌟 Learn more about how Meta and Salesforce help businesses:
-https://invite.salesforce.com/salesforceconnectionsmetaprese
+        reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
+
+Learn more on our partnerships page:
+https://www.salesforce.com/partners/meta-whatsapp/
+Then, return here for some swag!
 
 Want some swag?
 1. Yes
@@ -239,10 +246,10 @@ Want some swag?
         });
 
         await firestore.collection('sessions').doc(user).set({
-          nextFollowup5m: Date.now() + 5 * 60 * 1000,
-          nextFollowup7m: Date.now() + 7 * 60 * 1000,
-          followup5mSent: false,
-          followup7mSent: false,
+          nextFollowup3h: Date.now() + 3 * 60 * 60 * 1000, // 3 hours
+          nextFollowup23h: Date.now() + 23 * 60 * 60 * 1000, // 23 hours
+          followup3hSent: false,
+          followup23hSent: false,
           initialHat: session.initialHat,
           finalHat: session.finalHat,
           exchangeCount: session.exchangeCount,
@@ -266,7 +273,7 @@ Want some swag?
       if (incomingMsg === '1') {
         session.pathHistory.push('finalthanks');
         sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
-        reply = 'Thanks again for your participation! 🎉';
+        reply = 'Thanks for your participation!';
       } else if (incomingMsg === '2') {
         session.pathHistory.push('exchange');
         sessionStore.update(user, { stage: 'exchange', pathHistory: session.pathHistory });
