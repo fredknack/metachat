@@ -1,3 +1,5 @@
+// whatsapp.js (fully merged + updated)
+
 const express = require('express');
 const router = express.Router();
 const sessionStore = require('../lib/sessionStore');
@@ -6,7 +8,6 @@ const { firestore, admin } = require('../lib/firebase');
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
-// Swag filename map
 const swagImageMap = {
   Wallet: 'wallet.jpg',
   Sunglasses: 'sunglasses.jpg',
@@ -16,7 +17,6 @@ const swagImageMap = {
 async function logToFirestore(user, message, stage) {
   try {
     const sessionRef = firestore.collection('sessions').doc(user);
-
     await sessionRef.set({
       lastMessage: message,
       stage,
@@ -50,27 +50,8 @@ function twimlResponse(message, mediaUrl = null) {
   }
 }
 
-router.get('/', (req, res) => {
-  const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
-
-  if (mode && token) {
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('✅ Webhook verified!');
-      res.status(200).send(challenge);
-    } else {
-      console.warn('❌ Invalid verify token');
-      res.sendStatus(403);
-    }
-  } else {
-    res.sendStatus(400);
-  }
-});
-
 router.post('/', async (req, res) => {
   console.log('🔥 Incoming POST /whatsapp');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-
   const { From: from, Body } = req.body;
   const incomingMsg = Body?.trim().toLowerCase();
 
@@ -81,8 +62,6 @@ router.post('/', async (req, res) => {
 
   const user = from;
   const session = sessionStore.getOrCreateSession(user);
-
-  // Initialize tracking fields if missing
   session.pathHistory = session.pathHistory || [];
   session.exchangeCount = session.exchangeCount || 0;
   session.initialHat = session.initialHat || null;
@@ -95,30 +74,57 @@ router.post('/', async (req, res) => {
 
   let reply = '';
 
-if (
-  incomingMsg === 'start' ||
-  incomingMsg === 'reset' ||
-  incomingMsg === "let's connect!" ||
-  incomingMsg === "lets connect!"
-) {
-  sessionStore.resetSession(user);
-  sessionStore.update(user, {
-    stage: 'intro',
-    followupsSent: false,
-    pathHistory: ['intro'],
-    exchangeCount: 0,
-    initialHat: null,
-    finalHat: null
-  });
+  if (
+    incomingMsg === 'start' ||
+    incomingMsg === 'reset' ||
+    incomingMsg === "let's connect!" ||
+    incomingMsg === "lets connect!"
+  ) {
+    const userDoc = await firestore.collection('sessions').doc(user).get();
 
-  return res.set('Content-Type', 'text/xml').send(
-    twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
+    if (!userDoc.exists) {
+      sessionStore.resetSession(user);
+      sessionStore.update(user, {
+        stage: 'intro',
+        followupsSent: false,
+        pathHistory: ['intro'],
+        exchangeCount: 0,
+        initialHat: null,
+        finalHat: null
+      });
+
+      return res.set('Content-Type', 'text/xml').send(
+        twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
 Interested in learning more about the Salesforce and Meta partnership? 🤝
 Reply 1 for Yes
 2 for No`)
-  );
-}
+      );
+    } else {
+      const userData = userDoc.data();
+
+      if (userData.exchangeCount === 0) {
+        sessionStore.update(user, {
+          stage: 'exchange',
+          pathHistory: session.pathHistory.concat(['exchange']),
+          exchangeOffered: true
+        });
+
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse('Are you happy with your swag choice? Press 1 if you would like to exchange it.')
+        );
+      } else {
+        sessionStore.update(user, {
+          stage: 'finalthanks',
+          pathHistory: session.pathHistory.concat(['finalthanks'])
+        });
+
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse('Thanks again for your participation! 🎉')
+        );
+      }
+    }
+  }
 
   switch (session.stage) {
     case 'intro':
@@ -156,7 +162,6 @@ Want some swag?
       if (incomingMsg === '1') {
         session.pathHistory.push('select');
         sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
-
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
             'Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle',
@@ -174,9 +179,7 @@ Want some swag?
 
     case 'exchange':
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
-
       if (session.exchangeOffered === true && ['1', '2', '3'].includes(incomingMsg)) {
-        // User is selecting new swag
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
         const imageFilename = swagImageMap[hat];
@@ -208,19 +211,14 @@ Want some swag?
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
-      }
-      else if (incomingMsg === '1') {
-        // User is happy → move to finalthanks
+      } else if (incomingMsg === '1') {
         session.pathHistory.push('finalthanks');
         sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
         reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
-      }
-      else if (incomingMsg === '2') {
-        // User wants to exchange → show swag menu
+      } else if (incomingMsg === '2') {
         sessionStore.update(user, { exchangeOffered: true });
         reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
-      }
-      else {
+      } else {
         reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
       }
       break;
@@ -246,8 +244,8 @@ Want some swag?
         });
 
         await firestore.collection('sessions').doc(user).set({
-          nextFollowup3h: Date.now() + 3 * 60 * 60 * 1000, // 3 hours
-          nextFollowup23h: Date.now() + 23 * 60 * 60 * 1000, // 23 hours
+          nextFollowup3h: Date.now() + 3 * 60 * 60 * 1000,
+          nextFollowup23h: Date.now() + 23 * 60 * 60 * 1000,
           followup3hSent: false,
           followup23hSent: false,
           initialHat: session.initialHat,
