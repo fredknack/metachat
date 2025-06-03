@@ -179,7 +179,9 @@ Want some swag?
 
     case 'exchange':
       console.log(`[DEBUG] Exchange mode input received: ${incomingMsg}`);
+
       if (session.exchangeOffered === true && ['1', '2', '3'].includes(incomingMsg)) {
+        // User is selecting new swag
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
         const imageFilename = swagImageMap[hat];
@@ -207,17 +209,19 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n\nEnter 1 when you’re done.`,
+            `✅ *Exchange Confirmed!*\\n\\nNew Swag: *${hatFormatted}*\\nPickup: *Booth #12*\\n\\nShow this message at the booth to collect your new swag! 🎉\\n\\nEnter 1 when you’re done.`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
       } else if (incomingMsg === '1') {
+        // User is happy → move to finalthanks
         session.pathHistory.push('finalthanks');
         sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
         reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
       } else if (incomingMsg === '2') {
+        // User wants to exchange → show swag menu and flip flag ON
         sessionStore.update(user, { exchangeOffered: true });
-        reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+        reply = 'Please select the new swag you want:\\n1. Wallet\\n2. Sunglasses\\n3. Water Bottle';
       } else {
         reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
       }
