@@ -36,6 +36,32 @@ async function logToFirestore(user, message, stage) {
   }
 }
 
+function scheduleSwagConfirmation(user, delayMs = 20000) {
+  setTimeout(async () => {
+    try {
+      const sessionRef = firestore.collection('sessions').doc(user);
+      const sessionSnap = await sessionRef.get();
+      const data = sessionSnap.data();
+
+      if (!data || data.swagConfirmSent) return;
+
+      const imageFilename = swagImageMap[data.finalHat] || 'swag.jpg';
+
+      await twilioClient.client.messages.create({
+        from: FROM_NUMBER,
+        to: user,
+        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.\n\nEnter 1 when you’re done.`,
+        mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`]
+      });
+
+      await sessionRef.update({ swagConfirmSent: true });
+      console.log(`✅ [Immediate] Sent swag confirm to ${user}`);
+    } catch (err) {
+      console.error(`❌ [Immediate] Failed swag confirm for ${user}:`, err);
+    }
+  }, delayMs);
+}
+
 function twimlResponse(message, mediaUrl = null) {
   if (mediaUrl) {
     return `
