@@ -339,7 +339,7 @@ Want some swag?
         sessionStore.update(user, { stage: 'exchange', exchangeOffered: false, pathHistory: session.pathHistory });
         reply = 'Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.';
       } else {
-        reply = 'Please enter 1 when you’re done at the booth, or 2 if you want to exchange your swag.';
+        reply = 'Please enter 2 if you want to exchange your swag.';
       }
       break;
 
