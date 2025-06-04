@@ -50,7 +50,7 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
       await twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to: user,
-        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.\n\nEnter 1 when you’re done.`,
+        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.\n`,
         mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`]
       });
 
