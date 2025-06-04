@@ -306,6 +306,8 @@ Want some swag?
 
         console.log(`✅ Scheduled swagConfirm + followups for ${user}`);
 
+        scheduleSwagConfirmation(user, 20000); // ✅ trigger in-process swag confirm
+
         // ✅ Send immediate fun messages
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
