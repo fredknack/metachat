@@ -47,11 +47,19 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
 
       const imageFilename = swagImageMap[data.finalHat] || 'swag.jpg';
 
+      // First message: order confirmation + image
       await twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to: user,
-        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.\n`,
+        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.`,
         mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`]
+      });
+
+      // Second message: additional info and link
+      await twilioClient.client.messages.create({
+        from: FROM_NUMBER,
+        to: user,
+        body: `We hope you enjoyed the WhatsApp integrations on Salesforce Marketing Cloud and Service Cloud. Visit us anytime to learn more, and register for our sessions at CNX:\nhttps://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
       });
 
       await sessionRef.update({ swagConfirmSent: true });
