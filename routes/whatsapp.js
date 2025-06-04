@@ -105,6 +105,7 @@ router.post('/', async (req, res) => {
   if (
     incomingMsg === 'start' ||
     incomingMsg === 'reset' ||
+    incomingMsg === 'Reset' ||
     incomingMsg === "let's connect!" ||
     incomingMsg === "lets connect!"
   ) {
@@ -260,7 +261,7 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n\nEnter 1 when you’re done.`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
