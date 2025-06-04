@@ -262,9 +262,13 @@ Want some swag?
           pathHistory: session.pathHistory
         });
 
+        // ✅ Important: Set the followup + delayed swag confirmation timestamps
+        const now = Date.now();
         await firestore.collection('sessions').doc(user).set({
-          nextFollowup3h: Date.now() + 3 * 60 * 60 * 1000,
-          nextFollowup23h: Date.now() + 23 * 60 * 60 * 1000,
+          nextSwagConfirm: now + 90 * 1000, // 1.5 minutes from now
+          swagConfirmSent: false,
+          nextFollowup3h: now + 3 * 60 * 60 * 1000,
+          nextFollowup23h: now + 23 * 60 * 60 * 1000,
           followup3hSent: false,
           followup23hSent: false,
           initialHat: session.initialHat,
@@ -273,14 +277,23 @@ Want some swag?
           pathHistory: session.pathHistory
         }, { merge: true });
 
-        console.log(`✅ Updated Firestore followups + tracking for ${user}`);
+        console.log(`✅ Scheduled swagConfirm + followups for ${user}`);
 
-        return res.set('Content-Type', 'text/xml').send(
-          twimlResponse(
-            `✅ *Order Confirmed!*\n\nSwag: *${hatFormatted}*\nPrice: *$0*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your swag! 🎉\n\nEnter 1 when you’re done.`,
-            `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
-          )
-        );
+        // ✅ Send immediate fun messages
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          body: 'Great choice! Your swag is on its way—perfect for your stay in the Windy City! 💨'
+        });
+
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          body: `While you wait, check out these cool facts about Meta's business messaging solution:\n\n• 72% of online adults globally prefer messaging businesses.📱\n• 1B people connect with business accounts across our messaging services weekly. 🏪\n• The number of businesses using our paid messaging products have doubled yearly. 🚀`
+        });
+
+        // Do NOT send swag image yet — let the followupWorker do it
+        return res.set('Content-Type', 'text/xml').send('<Response></Response>');
       } else {
         reply = 'Please reply with 1, 2, or 3 to select your swag.';
       }
