@@ -269,7 +269,7 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #12*\n\nShow this message at the booth to collect your new swag! 🎉\n`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #2*\n\nShow this message at the booth to collect your new swag! 🎉\n`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
