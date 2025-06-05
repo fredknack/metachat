@@ -56,6 +56,7 @@ function scheduleSwagPrompt(user, delayMs = 7000) {
         from: FROM_NUMBER,
         to: user,
         body: `Hope you enjoyed that sneak peek of our shared solutions! 
+
 Let’s make your Connections experience unforgettable with some awesome swag on us! 
 
 Interested? 🏥
@@ -89,15 +90,22 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
         mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`]
       });
 
-      // Second message: additional info and link
-      await twilioClient.client.messages.create({
-        from: FROM_NUMBER,
-        to: user,
-        body: `We hope you enjoyed the WhatsApp integrations on Salesforce Marketing Cloud and Service Cloud. Visit us anytime to learn more, and register for our sessions at CNX:\nhttps://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
-      });
+      // ⏳ Wait 10 seconds before sending the second message
+      setTimeout(async () => {
+        try {
+          await twilioClient.client.messages.create({
+            from: FROM_NUMBER,
+            to: user,
+            body: `We hope you enjoyed the WhatsApp integrations on Salesforce Marketing Cloud and Service Cloud. Visit us anytime to learn more, and register for our sessions at CNX:\nhttps://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
+          });
 
-      await sessionRef.update({ swagConfirmSent: true });
-      console.log(`✅ [Immediate] Sent swag confirm to ${user}`);
+          await sessionRef.update({ swagConfirmSent: true });
+          console.log(`✅ [Immediate] Sent swag confirm to ${user}`);
+        } catch (innerErr) {
+          console.error(`❌ [Second Message] Failed swag confirm for ${user}:`, innerErr);
+        }
+      }, 10000); // 10-second delay for second message
+
     } catch (err) {
       console.error(`❌ [Immediate] Failed swag confirm for ${user}:`, err);
     }
