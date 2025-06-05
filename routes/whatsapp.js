@@ -36,7 +36,7 @@ async function logToFirestore(user, message, stage) {
   }
 }
 
-function scheduleSwagPrompt(user, delayMs = 7000) {
+function scheduleSwagPrompt(user, delayMs = 10000) {
   console.log(`⏳ Scheduling swag prompt for ${user} in ${delayMs}ms`);
 
   setTimeout(async () => {
@@ -60,6 +60,8 @@ function scheduleSwagPrompt(user, delayMs = 7000) {
 Let’s make your Connections experience unforgettable with some awesome swag on us! 
 
 Interested? 🛍️
+
+Reply:
 1. Yes
 2. No`
       });
@@ -86,7 +88,7 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
       await twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to: user,
-        body: `✅ Your order is ready! Be sure to show this message along with your badge to pick it up.`,
+        body: `✅ Great News...Your order is ready for pickup! Be sure to show this message along with your badge to pick it up.`,
         mediaUrl: [`https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`]
       });
 
@@ -191,9 +193,11 @@ Ready to see how Meta and Salesforce can help you shape the future of customer e
   
 Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
-To learn more about the Salesforce and Meta partnership reply: 🤝
+To learn more about the Salesforce and Meta partnership 🤝
 
-Reply 1 for Learn more
+Reply 
+
+1 for Learn more
 2 for No thank you`)
       );
     } else {
@@ -243,7 +247,7 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
         sessionStore.update(user, { stage: 'skipToSwag', pathHistory: session.pathHistory });
         reply = `That's okay, you can come back anytime.
 
-Everything you've just experienced is available natively in Salesforce Marketing Cloud.
+Everything you've just experienced is available natively on Salesforce.
 
 Want some swag?
 1. Yes
@@ -261,7 +265,7 @@ Want some swag?
         sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            'Swag on! Pick your favorite!\n1. Wallet\n2. Sunglasses\n3. Water Bottle',
+            'Swag on! Pick your favorite!\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle',
             'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
           )
         );
@@ -285,7 +289,7 @@ Want some swag?
         } else if (incomingMsg === '2') {
           session.exchangeOffered = true;
           sessionStore.update(user, { exchangeOffered: true });
-          reply = 'Please select the new swag you want:\n1. Wallet\n2. Sunglasses\n3. Water Bottle';
+          reply = 'Please select the new swag you want:\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle';
         } else {
           reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
         }
