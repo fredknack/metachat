@@ -1,4 +1,4 @@
-// FULL UPDATED whatsapp.js WITH FIXED EXCHANGE LOGIC
+// FULL UPDATED whatsapp.js WITH scheduleSwagPrompt() TRIGGERED
 
 const express = require('express');
 const router = express.Router();
@@ -34,6 +34,33 @@ async function logToFirestore(user, message, stage) {
   } catch (err) {
     console.error(`❌ Failed to log to Firebase for ${user}:`, err);
   }
+}
+
+function scheduleSwagPrompt(user, delayMs = 7000) {
+  setTimeout(async () => {
+    try {
+      const sessionRef = firestore.collection('sessions').doc(user);
+      const sessionSnap = await sessionRef.get();
+      const data = sessionSnap.data();
+
+      if (!data || data.stage !== 'swag') return;
+
+      await twilioClient.client.messages.create({
+        from: FROM_NUMBER,
+        to: user,
+        body: `Hope you enjoyed that sneak peek of our shared solutions! 
+Let’s make your Connections experience unforgettable with some awesome swag on us! 
+
+Interested? 🏥
+1. Yes
+2. No`
+      });
+
+      console.log(`✅ Sent delayed swag prompt to ${user}`);
+    } catch (err) {
+      console.error(`❌ Failed to send delayed swag prompt to ${user}:`, err);
+    }
+  }, delayMs);
 }
 
 function scheduleSwagConfirmation(user, delayMs = 20000) {
@@ -143,11 +170,16 @@ router.post('/', async (req, res) => {
       });
 
       return res.set('Content-Type', 'text/xml').send(
-        twimlResponse(`👋 Hi! Welcome to Connections! Ready to see how Meta and Salesforce can help you shape the future of customer engagement? Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
+        twimlResponse(`👋 Hi! Welcome to Connections!
+  
+Ready to see how Meta and Salesforce can help you shape the future of customer engagement?
+  
+Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
-  Interested in learning more about the Salesforce and Meta partnership? 🤝
-  Reply 1 for Yes
-  2 for No`)
+Interested in learning more about the Salesforce and Meta partnership? 🤝
+
+Reply 1 for Yes
+2 for No`)
       );
     } else {
       const userData = userDoc.data();
@@ -183,13 +215,8 @@ router.post('/', async (req, res) => {
         sessionStore.update(user, { stage: 'swag', pathHistory: session.pathHistory });
         reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
 
-Learn more on our partnerships page:
-https://www.salesforce.com/partners/meta-whatsapp/
-Then, return here for some swag!
-
-Want some swag?
-1. Yes
-2. No`;
+Check out our partnerships page to learn more  and come back for a chance to select some amazing swag!
+https://www.salesforce.com/partners/meta-whatsapp/`;
       } else if (incomingMsg === '2') {
         session.pathHistory.push('skipToSwag');
         sessionStore.update(user, { stage: 'skipToSwag', pathHistory: session.pathHistory });
@@ -213,7 +240,7 @@ Want some swag?
         sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            'Pick your swag:\n1. Wallet\n2. Sunglasses\n3. Water Bottle',
+            'Swag on! Pick your favorite!\n1. Wallet\n2. Sunglasses\n3. Water Bottle',
             'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
           )
         );
@@ -352,13 +379,17 @@ Want some swag?
       break;
 
     case 'finalthanks':
-      reply = 'Thank you again! You can always type "reset" to start over or "start" to explore again.';
+      reply = 'Thank you again!';
       break;
 
     default:
       console.warn(`[WARN] Unrecognized stage or input: stage=${session.stage}, input=${incomingMsg}`);
       sessionStore.update(user, { stage: 'intro' });
-      reply = "I'm not sure what you meant. Send 'reset' to start over.";
+      reply = `Thank you for connecting with us. Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API. '
+      
+  Check out our partnerships page to learn more!
+
+  https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
       break;
   }
 
