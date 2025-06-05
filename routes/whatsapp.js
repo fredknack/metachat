@@ -37,13 +37,20 @@ async function logToFirestore(user, message, stage) {
 }
 
 function scheduleSwagPrompt(user, delayMs = 7000) {
+  console.log(`⏳ Scheduling swag prompt for ${user} in ${delayMs}ms`);
+
   setTimeout(async () => {
     try {
+      console.log(`🚀 Attempting to send swag prompt to ${user}`);
+
       const sessionRef = firestore.collection('sessions').doc(user);
       const sessionSnap = await sessionRef.get();
       const data = sessionSnap.data();
 
-      if (!data || data.stage !== 'swag') return;
+      if (!data || data.stage !== 'swag') {
+        console.log(`⛔️ Not sending swag prompt. Stage is ${data?.stage}`);
+        return;
+      }
 
       await twilioClient.client.messages.create({
         from: FROM_NUMBER,
