@@ -15,6 +15,10 @@ const swagImageMap = {
   WaterBottle: 'bottle.jpg'
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function logToFirestore(user, message, stage) {
   try {
     const sessionRef = firestore.collection('sessions').doc(user);
@@ -55,7 +59,7 @@ function scheduleSwagPrompt(user, delayMs = 10000) {
       await twilioClient.client.messages.create({
         from: FROM_NUMBER,
         to: user,
-        body: `Hope you enjoyed that sneak peek of our shared solutions! 
+        body: `Hope you enjoyed that sneak peek of our partnership with Salesforce! 
 
 Let’s make your Connections experience unforgettable with some awesome swag on us! 
 
@@ -376,12 +380,14 @@ Want some swag?
           body: 'Great choice! Your swag is on its way—perfect for your stay in the Windy City! 💨'
         });
 
-        // 🆕 Split into 4 messages
+        // 🆕 Split into 4 messages with 3-second delays
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
           to: user,
-          body: "While you wait, check out these cool facts about Meta's business messaging solution:"
+          body: "While you wait, check out these cool facts about Meta's Business Messaging solution:"
         });
+
+        await sleep(3000);
 
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
@@ -389,11 +395,15 @@ Want some swag?
           mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-1.jpg']
         });
 
+        await sleep(3000);
+
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
           to: user,
           mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-2.jpg']
         });
+
+        await sleep(3000);
 
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
