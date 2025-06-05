@@ -66,8 +66,8 @@ Let’s make your Connections experience unforgettable with some awesome swag on
 Interested? 🛍️
 
 Reply:
-1. Yes
-2. No`
+1 for Yes
+2 for No`
       });
 
       console.log(`✅ Sent delayed swag prompt to ${user}`);
@@ -253,9 +253,11 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
 
 Everything you've just experienced is available natively on Salesforce.
 
+Check out our partnerships page to learn more!
+
 Want some swag?
-1. Yes
-2. No`;
+1 for Yes
+2 for No`;
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
@@ -269,7 +271,7 @@ Want some swag?
         sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            'Swag on! Pick your favorite!\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle',
+            'Swag on! Pick your favorite!\n\nRelpy:\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle',
             'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
           )
         );
