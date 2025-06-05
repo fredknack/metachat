@@ -220,6 +220,11 @@ Reply 1 for Yes
       if (incomingMsg === '1') {
         session.pathHistory.push('swag');
         sessionStore.update(user, { stage: 'swag', pathHistory: session.pathHistory });
+        
+        await firestore.collection('sessions').doc(user).set({
+          stage: 'swag'
+        }, { merge: true });
+        
         scheduleSwagPrompt(user); 
         reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
 
