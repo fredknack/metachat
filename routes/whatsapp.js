@@ -387,7 +387,7 @@ Want some swag?
           body: "While you wait, check out these cool facts about Meta's Business Messaging solution:"
         });
 
-        await sleep(3000);
+        await sleep(4000);
 
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
@@ -395,7 +395,7 @@ Want some swag?
           mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-1.jpg']
         });
 
-        await sleep(3000);
+        await sleep(4000);
 
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
@@ -403,7 +403,7 @@ Want some swag?
           mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-2.jpg']
         });
 
-        await sleep(3000);
+        await sleep(4000);
 
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
