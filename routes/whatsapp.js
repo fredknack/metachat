@@ -59,7 +59,7 @@ function scheduleSwagPrompt(user, delayMs = 7000) {
 
 Let’s make your Connections experience unforgettable with some awesome swag on us! 
 
-Interested? 🏥
+Interested? 🛍️
 1. Yes
 2. No`
       });
@@ -191,10 +191,10 @@ Ready to see how Meta and Salesforce can help you shape the future of customer e
   
 Every connection is an opportunity. It’s Your World. Let’s get started! 🚀
 
-Interested in learning more about the Salesforce and Meta partnership? 🤝
+To learn more about the Salesforce and Meta partnership reply: 🤝
 
-Reply 1 for Yes
-2 for No`)
+Reply 1 for Learn more
+2 for No thank you`)
       );
     } else {
       const userData = userDoc.data();
