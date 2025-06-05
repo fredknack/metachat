@@ -213,6 +213,7 @@ Reply 1 for Yes
       if (incomingMsg === '1') {
         session.pathHistory.push('swag');
         sessionStore.update(user, { stage: 'swag', pathHistory: session.pathHistory });
+        scheduleSwagPrompt(user); 
         reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
 
 Check out our partnerships page to learn more  and come back for a chance to select some amazing swag!
