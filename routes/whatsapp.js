@@ -364,10 +364,29 @@ Want some swag?
           body: 'Great choice! Your swag is on its way—perfect for your stay in the Windy City! 💨'
         });
 
+        // 🆕 Split into 4 messages
         await twilioClient.client.messages.create({
           from: FROM_NUMBER,
           to: user,
-          body: `While you wait, check out these cool facts about Meta's business messaging solution:\n\n• 72% of online adults globally prefer messaging businesses.📱\n• 1B people connect with business accounts across our messaging services weekly. 🏪\n• The number of businesses using our paid messaging products have doubled yearly. 🚀`
+          body: "While you wait, check out these cool facts about Meta's business messaging solution:"
+        });
+
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-1.jpg']
+        });
+
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-2.jpg']
+        });
+
+        await twilioClient.client.messages.create({
+          from: FROM_NUMBER,
+          to: user,
+          mediaUrl: ['https://metachat-production-e054.up.railway.app/static/swag/banner-3.jpg']
         });
 
         // Do NOT send swag image yet — let the followupWorker do it
