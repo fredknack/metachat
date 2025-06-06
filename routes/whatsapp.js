@@ -81,6 +81,7 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
   setTimeout(async () => {
     try {
       const sessionRef = firestore.collection('sessions').doc(user);
+      const statsRef = firestore.collection('meta').doc('stats');
       const sessionSnap = await sessionRef.get();
       const data = sessionSnap.data();
 
@@ -240,6 +241,11 @@ Reply
         await firestore.collection('sessions').doc(user).set({
           stage: 'swag'
         }, { merge: true });
+
+        // Increment learnMoreClicks
+        await firestore.collection('meta').doc('stats').update({
+          learnMoreClicks: admin.firestore.FieldValue.increment(1)
+        });
         
         scheduleSwagPrompt(user); 
         reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
@@ -317,13 +323,27 @@ Want some swag?
           pathHistory: session.pathHistory
         });
 
-        await firestore.collection('sessions').doc(user).set({
-          exchangeCount: session.exchangeCount,
-          finalHat: session.finalHat,
-          pathHistory: session.pathHistory
-        }, { merge: true });
+        const statsRef = firestore.collection('meta').doc('stats');
 
-        console.log(`✅ Swag exchanged + tracking updated for ${user}`);
+        const swagFieldMap = {
+          wallet: 'walletTotal',
+          sunglasses: 'sunglassesTotal',
+          waterbottle: 'waterBottleTotal'
+        };
+
+        const oldHatKey = session.initialHat?.toLowerCase();
+        const newHatKey = hat.toLowerCase(); // from earlier assignment
+
+        const updates = {};
+        if (oldHatKey && swagFieldMap[oldHatKey]) {
+          updates[swagFieldMap[oldHatKey]] = admin.firestore.FieldValue.increment(-1);
+        }
+        if (swagFieldMap[newHatKey]) {
+          updates[swagFieldMap[newHatKey]] = admin.firestore.FieldValue.increment(1);
+        }
+
+        await statsRef.update(updates);
+        console.log(`📊 Updated stats: -1 ${oldHatKey}, +1 ${newHatKey}`);
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
@@ -372,6 +392,28 @@ Want some swag?
         }, { merge: true });
 
         console.log(`✅ Scheduled swagConfirm + followups for ${user}`);
+
+        const statsRef = firestore.collection('meta').doc('stats');
+
+        // Get selected hat (e.g. from session.finalHat)
+        const selectedHat = session.finalHat?.toLowerCase();
+        const swagFieldMap = {
+          wallet: 'walletTotal',
+          sunglasses: 'sunglassesTotal',
+          waterbottle: 'waterBottleTotal'
+        };
+        const field = swagFieldMap[selectedHat];
+
+        if (field) {
+          const update = {
+            [field]: admin.firestore.FieldValue.increment(1),
+            totalOrders: admin.firestore.FieldValue.increment(1)
+          };
+          await statsRef.update(update);
+          console.log(`📊 Updated stats for ${selectedHat}`);
+        } else {
+          console.warn(`⚠️ No matching swag field found for: ${selectedHat}`);
+        }
 
         scheduleSwagConfirmation(user, 20000); // ✅ trigger in-process swag confirm
 
