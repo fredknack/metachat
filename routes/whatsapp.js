@@ -176,6 +176,11 @@ router.post('/', async (req, res) => {
       }
     }
 
+    const statsRef = firestore.collection('meta').doc('stats');
+    await statsRef.update({
+      totalInteractions: admin.firestore.FieldValue.increment(1)
+    });
+
     const userDoc = await firestore.collection('sessions').doc(user).get();
 
     if (!userDoc.exists || !userDoc.data().initialHat) {
