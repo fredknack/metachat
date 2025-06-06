@@ -4,9 +4,13 @@ const QRCode = require('qrcode');
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const businessNumber = '15034214678'; // Your WhatsApp number (no + or formatting)
+  // const businessNumber = '15034214678'; // Your WhatsApp number (no + or formatting)
+  // const defaultMessage = "Let's Connect!";
+  // const waLink = `https://wa.me/${businessNumber}?text=${encodeURIComponent(defaultMessage)}`;
+
+  const redirectBaseUrl = 'https://interactioncounter.web.app';
   const defaultMessage = "Let's Connect!";
-  const waLink = `https://wa.me/${businessNumber}?text=${encodeURIComponent(defaultMessage)}`;
+  const waLink = `${redirectBaseUrl}/index.html?text=${encodeURIComponent(defaultMessage)}`;
 
   try {
     // Meta blue: #0064e0
