@@ -239,7 +239,7 @@ Reply
     } else {
       const userData = userDoc.data();
       console.log(`[DEBUG] Firestore exchangeCount for ${user}:`, userData.exchangeCount);
-      if (typeof userData.exchangeCount === 'number' && userData.exchangeCount < 2) {
+      if (typeof userData.exchangeCount === 'number' && userData.exchangeCount < 1) {
         sessionStore.update(user, {
           stage: 'exchange',
           exchangeOffered: false,
