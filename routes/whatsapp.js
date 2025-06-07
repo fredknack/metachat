@@ -103,7 +103,13 @@ function scheduleSwagConfirmation(user, delayMs = 20000) {
           await twilioClient.client.messages.create({
             from: FROM_NUMBER,
             to: user,
-            body: `We hope you enjoyed the WhatsApp integrations on Salesforce Marketing Cloud and Service Cloud. Visit us anytime to learn more, and register for our sessions at CNX:\nhttps://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
+            body: `Thanks for stopping by today!
+            
+We hope you enjoyed the preview of some of the great experiences you can drive with your own customers using the WhatsApp integration on Salesforce.
+
+And, don’t forget to register here for our upcoming sessions at CNX!
+
+https://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ`
           });
 
           await sessionRef.update({ swagConfirmSent: true });
@@ -213,7 +219,7 @@ Reply
     } else {
       const userData = userDoc.data();
 
-      if (userData.exchangeCount === 0) {
+      if (userData.exchangeCount === 0 || userData.exchangeCount === 1) {
         sessionStore.update(user, {
           stage: 'exchange',
           exchangeOffered: false,
@@ -265,6 +271,8 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
 Everything you've just experienced is available natively on Salesforce.
 
 Check out our partnerships page to learn more!
+
+https://www.salesforce.com/partners/meta-whatsapp/
 
 Want some swag?
 1 for Yes
