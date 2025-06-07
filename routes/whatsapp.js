@@ -344,7 +344,13 @@ Want some swag?
         const hatFormatted = hat.replace(/([A-Z])/g, ' $1').trim();
         const imageFilename = swagImageMap[hat];
 
-        session.exchangeCount += 1;
+        // ✅ Safely increment and cap exchangeCount at 2
+        if (typeof session.exchangeCount === 'number') {
+          session.exchangeCount = Math.min(session.exchangeCount + 1, 2);
+        } else {
+          session.exchangeCount = 1;
+        }
+
         session.finalHat = hat;
         session.pathHistory.push('checkout');
         session.stage = 'checkout';
@@ -359,7 +365,7 @@ Want some swag?
           pathHistory: session.pathHistory
         });
 
-        // ✅ Strong Firestore write
+        // ✅ Write directly to Firestore
         const sessionRef = firestore.collection('sessions').doc(user);
         const sessionPayload = {
           exchangeCount: session.exchangeCount,
@@ -372,11 +378,11 @@ Want some swag?
         await sessionRef.set(sessionPayload, { merge: true });
         console.log(`[SYNC] Wrote to Firestore for ${user}:`, sessionPayload);
 
-        // 🔍 Optional: immediately read back and verify
+        // 🔍 Optional: verify the write
         const verifySnap = await sessionRef.get();
         console.log(`[VERIFY WRITE] Firestore exchangeCount after update:`, verifySnap.data().exchangeCount);
 
-        // 🧮 Stats tracking
+        // 📊 Stats
         const statsRef = firestore.collection('meta').doc('stats');
         const swagFieldMap = {
           wallet: 'walletTotal',
@@ -399,7 +405,7 @@ Want some swag?
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #2*\n\nShow this message at the booth to collect your new swag! 🎉\n`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #2*\n\nShow this message at the booth to collect your new swag! 🎉`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
