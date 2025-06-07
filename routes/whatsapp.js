@@ -238,8 +238,8 @@ Reply
       );
     } else {
       const userData = userDoc.data();
-
-      if (userData.exchangeCount !== undefined && userData.exchangeCount < 2) {
+      console.log(`[DEBUG] Firestore exchangeCount for ${user}:`, userData.exchangeCount);
+      if (typeof userData.exchangeCount === 'number' && userData.exchangeCount < 2) {
         sessionStore.update(user, {
           stage: 'exchange',
           exchangeOffered: false,
