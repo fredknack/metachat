@@ -335,6 +335,7 @@ Want some swag?
           exchangeOffered: false,
           pathHistory: session.pathHistory
         });
+        await syncSessionToFirestore(user, session);
 
         const statsRef = firestore.collection('meta').doc('stats');
 
