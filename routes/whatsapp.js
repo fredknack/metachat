@@ -347,27 +347,44 @@ Want some swag?
         session.exchangeCount += 1;
         session.finalHat = hat;
         session.pathHistory.push('checkout');
+        session.stage = 'checkout';
+        session.exchangeOffered = false;
 
         sessionStore.update(user, {
           selectedHat: hat,
-          stage: 'checkout',
+          stage: session.stage,
           exchangeCount: session.exchangeCount,
           finalHat: session.finalHat,
           exchangeOffered: false,
           pathHistory: session.pathHistory
         });
-        await syncSessionToFirestore(user, session);
 
+        // ✅ Strong Firestore write
+        const sessionRef = firestore.collection('sessions').doc(user);
+        const sessionPayload = {
+          exchangeCount: session.exchangeCount,
+          finalHat: session.finalHat,
+          initialHat: session.initialHat,
+          stage: session.stage,
+          pathHistory: session.pathHistory,
+          exchangeOffered: session.exchangeOffered
+        };
+        await sessionRef.set(sessionPayload, { merge: true });
+        console.log(`[SYNC] Wrote to Firestore for ${user}:`, sessionPayload);
+
+        // 🔍 Optional: immediately read back and verify
+        const verifySnap = await sessionRef.get();
+        console.log(`[VERIFY WRITE] Firestore exchangeCount after update:`, verifySnap.data().exchangeCount);
+
+        // 🧮 Stats tracking
         const statsRef = firestore.collection('meta').doc('stats');
-
         const swagFieldMap = {
           wallet: 'walletTotal',
           sunglasses: 'sunglassesTotal',
           waterbottle: 'waterBottleTotal'
         };
-
         const oldHatKey = session.initialHat?.toLowerCase();
-        const newHatKey = hat.toLowerCase(); // from earlier assignment
+        const newHatKey = hat.toLowerCase();
 
         const updates = {};
         if (oldHatKey && swagFieldMap[oldHatKey]) {
