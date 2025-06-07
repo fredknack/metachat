@@ -19,6 +19,26 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function syncSessionToFirestore(user, session, extraFields = {}) {
+  const sessionRef = firestore.collection('sessions').doc(user);
+  const payload = {
+    exchangeCount: session.exchangeCount,
+    finalHat: session.finalHat,
+    initialHat: session.initialHat,
+    stage: session.stage,
+    pathHistory: session.pathHistory,
+    exchangeOffered: session.exchangeOffered,
+    ...extraFields
+  };
+
+  try {
+    await sessionRef.set(payload, { merge: true });
+    console.log(`🔄 Synced session to Firestore for ${user}`);
+  } catch (err) {
+    console.error(`❌ Failed to sync session to Firestore for ${user}:`, err);
+  }
+}
+
 async function logToFirestore(user, message, stage) {
   try {
     const sessionRef = firestore.collection('sessions').doc(user);
@@ -310,6 +330,7 @@ Want some swag?
         if (incomingMsg === '1') {
           session.pathHistory.push('finalthanks');
           sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
+          await syncSessionToFirestore(user, session);
           reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
         } else if (incomingMsg === '2') {
           session.exchangeOffered = true;
@@ -484,6 +505,7 @@ Want some swag?
       } else if (incomingMsg === '2') {
         session.pathHistory.push('exchange');
         sessionStore.update(user, { stage: 'exchange', exchangeOffered: false, pathHistory: session.pathHistory });
+        await syncSessionToFirestore(user, session);
         reply = 'Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.';
       } else {
         reply = 'Please enter 2 if you want to exchange your swag.';
