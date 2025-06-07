@@ -346,7 +346,7 @@ Want some swag?
 
         // ✅ Safely increment and cap exchangeCount at 2
         if (typeof session.exchangeCount === 'number') {
-          session.exchangeCount = Math.min(session.exchangeCount + 1, 2);
+          session.exchangeCount = session.exchangeCount === 1 ? 2 : 1;
         } else {
           session.exchangeCount = 1;
         }
