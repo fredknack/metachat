@@ -239,7 +239,7 @@ Reply
     } else {
       const userData = userDoc.data();
 
-      if (userData.exchangeCount === 0 || userData.exchangeCount === 1) {
+      if (userData.exchangeCount !== undefined && userData.exchangeCount < 2) {
         sessionStore.update(user, {
           stage: 'exchange',
           exchangeOffered: false,
