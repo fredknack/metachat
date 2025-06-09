@@ -317,7 +317,13 @@ Want some swag?
       } else if (incomingMsg === '2') {
         session.pathHistory.push('completed');
         sessionStore.update(user, { stage: 'completed', pathHistory: session.pathHistory });
-        reply = 'Thanks for your time! We hope to connect again soon. 🎉';
+        reply = `That's okay, you can come back anytime.
+        
+Everything you've just experienced is available natively on Salesforce.
+
+Check out our partnerships page to learn more!
+
+https://www.salesforce.com/partners/meta-whatsapp/`;
       } else {
         reply = 'Please reply with 1 (Yes) or 2 (No).';
       }
