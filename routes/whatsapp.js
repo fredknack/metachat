@@ -330,7 +330,7 @@ Want some swag?
         sessionStore.update(user, { stage: 'select', pathHistory: session.pathHistory });
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            'Swag on! Pick your favorite!\n\nRelpy:\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle',
+            'Swag on! Pick your favorite!\n\nReply:\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle',
             'https://metachat-production-e054.up.railway.app/static/swag/swag.jpg'
           )
         );
@@ -359,7 +359,7 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
           session.pathHistory.push('finalthanks');
           sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
           await syncSessionToFirestore(user, session);
-          reply = 'Thanks again for your participation! 🎉 If you want to learn more, visit: https://invite.salesforce.com/salesforceconnectionsmetaprese';
+          reply = 'Thanks again for your participation!\n\nWe hope you enjoyed the preview of some of the great experiences you can drive with your own customers using the WhatsApp integration on Salesforce.\n\nAnd, don’t forget to register here for our upcoming sessions at CNX!\n\nhttps://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ';
         } else if (incomingMsg === '2') {
           session.exchangeOffered = true;
           sessionStore.update(user, { exchangeOffered: true });
@@ -435,7 +435,7 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
 
         return res.set('Content-Type', 'text/xml').send(
           twimlResponse(
-            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #2*\n\nShow this message at the booth to collect your new swag! 🎉`,
+            `✅ *Exchange Confirmed!*\n\nNew Swag: *${hatFormatted}*\nPickup: *Booth #2*\n\nBe sure to show this message along with your badge to make your exchange. 🎉`,
             `https://metachat-production-e054.up.railway.app/static/swag/${imageFilename}`
           )
         );
