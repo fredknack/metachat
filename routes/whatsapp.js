@@ -596,11 +596,9 @@ https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
 // Catch-all fallback if no reply was assigned
 if (!reply) {
   console.warn(`[WARN] Unrecognized input: ${incomingMsg}`);
-  reply = `Such dedication to the Meta booth! 🫶
-  
-If you'd like to learn more about our partnership with Salesforce, please complete this form to get in touch.
-
-https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`;
+  return res.set('Content-Type', 'text/xml').send(
+    twimlResponse(catchAllMessage)
+  );
 }
 
 res.set('Content-Type', 'text/xml');
