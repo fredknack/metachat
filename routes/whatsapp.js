@@ -299,7 +299,7 @@ https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`)
         scheduleSwagPrompt(user); 
         reply = `Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API.
 
-Check out our partnerships page to learn more  and come back for a chance to select some amazing swag!
+Check out our partnerships page to learn more and come back for a chance to select some amazing swag!
 https://www.salesforce.com/partners/meta-whatsapp/`;
       } else if (incomingMsg === '2') {
         session.pathHistory.push('skipToSwag');
