@@ -6,10 +6,11 @@ const sessionStore = require('../lib/sessionStore');
 const { firestore, admin } = require('../lib/firebase');
 const twilioClient = require('../lib/twilioClient');
 
-const catchAllMessage = `Such dedication to the Meta booth! 🫶
-If you'd like to learn more about our partnership with Salesforce, please complete this form to get in touch.
+const catchAllMessage = `Thank you for connecting with us. Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API. 
 
-https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`;
+Check out our partnerships page to learn more!
+
+https://www.salesforce.com/partners/meta-whatsapp/`;
 
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
