@@ -6,6 +6,11 @@ const sessionStore = require('../lib/sessionStore');
 const { firestore, admin } = require('../lib/firebase');
 const twilioClient = require('../lib/twilioClient');
 
+const catchAllMessage = `Such dedication to the Meta booth! 🫶
+If you'd like to learn more about our partnership with Salesforce, please complete this form to get in touch.
+
+https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`;
+
 const FROM_NUMBER = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+15034214678';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'JumpwireWhatsAppSecret9834';
 
@@ -310,7 +315,9 @@ Want some swag?
 1 for Yes
 2 for No`;
       } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(catchAllMessage)
+        );
       }
       break;
 
@@ -337,7 +344,9 @@ Check out our partnerships page to learn more!
 
 https://www.salesforce.com/partners/meta-whatsapp/`;
       } else {
-        reply = 'Please reply with 1 (Yes) or 2 (No).';
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(catchAllMessage)
+        );
       }
       break;
 
@@ -355,7 +364,9 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
           sessionStore.update(user, { exchangeOffered: true });
           reply = 'Please select the new swag you want:\n1 for Wallet\n2 for Sunglasses\n3 for Water Bottle';
         } else {
-          reply = 'Please reply with 1 if you’re happy, or 2 if you want to exchange your swag.';
+          return res.set('Content-Type', 'text/xml').send(
+            twimlResponse(catchAllMessage)
+          );
         }
       } else if (['1', '2', '3'].includes(incomingMsg)) {
         const hat = incomingMsg === '1' ? 'Wallet' : incomingMsg === '2' ? 'Sunglasses' : 'WaterBottle';
@@ -534,7 +545,9 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
         // Do NOT send swag image yet — let the followupWorker do it
         return res.set('Content-Type', 'text/xml').send('<Response></Response>');
       } else {
-        reply = 'Please reply with 1, 2, or 3 to select your swag.';
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(catchAllMessage)
+        );
       }
       break;
 
