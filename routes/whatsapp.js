@@ -568,7 +568,9 @@ Reply:
 1 for Nevermind, I like my swag! 🛍️
 2 for Let's swap! 🔁`;
       } else {
-        reply = 'Please enter 2 if you want to exchange your swag.';
+        return res.set('Content-Type', 'text/xml').send(
+          twimlResponse(catchAllMessage)
+        );
       }
       break;
 
