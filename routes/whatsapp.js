@@ -560,7 +560,11 @@ Reply:
       break;
 
     case 'finalthanks':
-      reply = 'Thank you again!';
+      reply = `Thank you for connecting with us. Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API. '
+      
+Check out our partnerships page to learn more!
+
+https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
       break;
 
     default:
@@ -568,9 +572,9 @@ Reply:
       sessionStore.update(user, { stage: 'intro' });
       reply = `Thank you for connecting with us. Meta and Salesforce are teaming up to enhance customer engagement and marketing performance through WhatsApp and Conversions API. '
       
-  Check out our partnerships page to learn more!
+Check out our partnerships page to learn more!
 
-  https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
+https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`
       break;
   }
 
