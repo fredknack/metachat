@@ -247,7 +247,15 @@ Reply
         });
 
         return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.')
+          twimlResponse(
+            `It's nice to see you again! Welcome back to the Meta booth.
+
+Do you have a question for our team? If so, please chat with a booth representative. Or, if you'd like to exchange your swag, we're happy to trade 🔁
+
+Reply:
+1 for Nevermind, I like my swag! 🛍️
+2 for Let's swap! 🔁`
+          )
         );
       } else {
         sessionStore.update(user, {
@@ -256,7 +264,11 @@ Reply
         });
 
         return res.set('Content-Type', 'text/xml').send(
-          twimlResponse('Thanks again for your participation! 🎉')
+          twimlResponse(`Such dedication to the Meta booth! 🫶
+        
+If you'd like to learn more about our partnership with Salesforce, please complete this form to get in touch.
+
+https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`)
         );
       }
     }
@@ -535,7 +547,13 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
         session.pathHistory.push('exchange');
         sessionStore.update(user, { stage: 'exchange', exchangeOffered: false, pathHistory: session.pathHistory });
         await syncSessionToFirestore(user, session);
-        reply = 'Are you happy with your swag choice? Reply 1 if you’re happy, or 2 if you want to exchange it.';
+        reply = `It's nice to see you again! Welcome back to the Meta booth.
+
+Do you have a question for our team? If so, please chat with a booth representative. Or, if you'd like to exchange your swag, we're happy to trade 🔁
+
+Reply:
+1 for Nevermind, I like my swag! 🛍️
+2 for Let's swap! 🔁`;
       } else {
         reply = 'Please enter 2 if you want to exchange your swag.';
       }
@@ -556,10 +574,18 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
       break;
   }
 
-  if (reply) {
-    res.set('Content-Type', 'text/xml');
-    res.send(twimlResponse(reply));
-  }
+// Catch-all fallback if no reply was assigned
+if (!reply) {
+  console.warn(`[WARN] Unrecognized input: ${incomingMsg}`);
+  reply = `Such dedication to the Meta booth! 🫶
+  
+If you'd like to learn more about our partnership with Salesforce, please complete this form to get in touch.
+
+https://invite.salesforce.com/salesforceconnectionsmetaprese#g-108497786`;
+}
+
+res.set('Content-Type', 'text/xml');
+res.send(twimlResponse(reply));
 });
 
 module.exports = router;
