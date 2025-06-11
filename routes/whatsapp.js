@@ -135,7 +135,9 @@ We hope you enjoyed the preview of some of the great experiences you can drive w
 
 And, don’t forget to register here for our upcoming sessions at CNX!
 
-https://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ`
+https://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ
+
+Sources: 1. Business Messaging Usage Research by Kanter, (Meta commissioned online study of 6,513 online adults in BR, MX, ID, TH, VN, UK, DE, ES, FR, IN, US, PH, MY), March 2024. 2. Meta data, March 2024. 3. Meta Q223 Earning, Jul 2023.`
           });
 
           await sessionRef.update({ swagConfirmSent: true });
