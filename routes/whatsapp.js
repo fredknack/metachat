@@ -359,7 +359,7 @@ https://www.salesforce.com/partners/meta-whatsapp/`;
           session.pathHistory.push('finalthanks');
           sessionStore.update(user, { stage: 'finalthanks', pathHistory: session.pathHistory });
           await syncSessionToFirestore(user, session);
-          reply = 'Thanks again for your participation!\n\nWe hope you enjoyed the preview of some of the great experiences you can drive with your own customers using the WhatsApp integration on Salesforce.\n\nAnd, don’t forget to register here for our upcoming sessions at CNX!\n\nhttps://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ';
+          reply = 'Thanks again for your participation!\n\nWe hope you enjoyed the preview of some of the great experiences you can drive with your own customers using the WhatsApp integration on Salesforce.\n\nAnd, don’t forget to register here for our upcoming sessions at CNX!\n\nhttps://reg.salesforce.com/flow/plus/cnx25/sponsors/page/sponsorlisting/exhibitor/1662737052819001I1FZ\n\nSources: 1. Business Messaging Usage Research by Kanter, (Meta commissioned online study of 6,513 online adults in BR, MX, ID, TH, VN, UK, DE, ES, FR, IN, US, PH, MY), March 2024. 2. Meta data, March 2024. 3. Meta Q223 Earning, Jul 2023.';
         } else if (incomingMsg === '2') {
           session.exchangeOffered = true;
           sessionStore.update(user, { exchangeOffered: true });
